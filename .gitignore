@@ -1,0 +1,14 @@
+
+.idea/
+
+library/__pycache__/
+
+library/clients/__pycache__/
+
+*.pyc
+
+local/
+
+logs/
+
+tests/

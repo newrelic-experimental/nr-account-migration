@@ -8,7 +8,7 @@ library/clients/__pycache__/
 *.pyc
 
 local/
-
 logs/
-
 tests/
+output/
+db/

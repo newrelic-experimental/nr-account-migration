@@ -2,10 +2,12 @@ from pathlib import Path
 import json
 import os
 import csv
+import datetime
 import library.monitortypes as monitortypes
 import library.migrationlogger as migrationlogger
 import library.windows_names as win_names
 import library.utils as utils
+
 
 # the fetched monitors are stored locally at db/<source_account>/monitors/<monitor_name>/<monitor_name>.json
 DB_DIR = "db"
@@ -15,6 +17,9 @@ MONITOR_LABELS_FILE = "monitor_labels.json"
 APM_LABELS_FILE = "apm_labels.json"
 ALERT_POLICIES_DIR = "alert_policies"
 ALERT_POLICIES_FILE = "alert_policies.json"
+ALERT_VIOLATIONS_DIR = "alert_violations"
+ALERT_VIOLATIONS_FILE = "alert_violations.json"
+ALERT_VIOLATIONS_CSV = "alert_violations.csv"
 ALERT_CHANNELS_FILE = "alert_channels.json"
 MONITOR_LABELS_CSV = "monitor_labels.csv"
 SYNTHETIC_ALERTS_FILE = "synthetics_alerts.json"
@@ -225,6 +230,38 @@ def save_alert_policies(account_id, alert_policies):
     alert_policies_dir = base_dir / account_id / ALERT_POLICIES_DIR
     save_json(alert_policies_dir, ALERT_POLICIES_FILE, alert_policies)
 
+
+def save_alert_violations(account_id, alert_violations):
+    base_dir = Path("db")
+    alert_violations_dir = base_dir / account_id / ALERT_VIOLATIONS_DIR
+    save_json(alert_violations_dir, ALERT_VIOLATIONS_FILE, alert_violations)
+
+
+def save_alert_violations_csv(account_id, alert_violations_json):
+    base_dir = Path("db")
+    alert_violations_dir = base_dir / account_id / ALERT_VIOLATIONS_DIR
+    alert_violations_csv = alert_violations_dir / ALERT_VIOLATIONS_CSV
+    create_file(alert_violations_csv)
+    with open(str(alert_violations_csv), 'w', newline='') as csvfile:
+        violations_writer = csv.writer(csvfile, delimiter=',',
+                                   quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        write_header = True
+        for violation in alert_violations_json['violations']:
+            if write_header:
+                headers = violation.keys()
+                violations_writer.writerow(headers)
+                write_header = False
+            violation = convert_timestamps_to_dates(violation)
+            violations_writer.writerow(violation.values())
+
+
+def convert_timestamps_to_dates(violation):
+    opened_at_date = datetime.fromtimestamp(violation['opened_at']/1000)
+    violation['opened_at'] = opened_at_date
+    if 'closed_at' in violation:
+        closed_at_date = datetime.fromtimestamp(violation['closed_at']/1000)
+        violation['closed_at'] = closed_at_date
+    return violation
 
 #  db/<account_id>/alert_policies/alerts_channels.json
 def save_alert_channels(account_id, all_alert_channels):

@@ -320,7 +320,24 @@ deleteallmonitors fetches all the monitors. Backs them up in db/accountId/monito
 usage: store_policies.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
 
 Saves all alert polices in db/<sourceAccount>/alert_policies/alert_policies.json
+
+####  13) (optional) python3 store_violations.py
+
+usage: store_violations.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --startDate STARTDATE --endDate ENDDATE [--onlyOpen]
+
+ --sourceAccount SOURCEACCOUNT Source accountId
+ 
+  --sourceApiKey SOURCEAPIKEY Source account API Key or set environment variable ENV_SOURCE_API_KEY
   
+  --startDate STARTDATE startDate format 2020-08-03T19:18:00+00:00
+  
+  --endDate ENDDATE     endDate format 2020-08-04T19:18:00+00:00
+  
+  --onlyOpen            By default all violations are fetched pass --onlyOpen to fetch only open violations
+ 
+
+Saves all alert violations in db/<sourceAccount>/alert_violations/alert_violations.json
+and db/<sourceAccount>/alert_violations/alert_violations.csv    
 
 ### Logging
 

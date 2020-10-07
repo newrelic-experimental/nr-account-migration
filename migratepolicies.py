@@ -39,7 +39,7 @@ def print_args(src_api_key, tgt_api_key):
         logger.info("Using useLocal : " + str(args.useLocal))
         logger.info("Switched fetch_channels to :" + str(fetch_channels))
     else:
-        logger.info("Default fetch_latest :" + str(fetch_channels))
+        logger.info("Default fetch_channels :" + str(fetch_channels))
 
 
 def type_name_key(channel):

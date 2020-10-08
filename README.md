@@ -169,6 +169,7 @@ sourceAccount | Account to fetch monitors from
 sourceApiKey  | This should be the Admin API Key for sourceAccount
 targetAccount | Account to migrate monitors to
 targetApiKey  | This should be the Admin API Key for targetAccount
+personalApiKey | Personal API Key used for GraphQL API Client calls (required to apply tags)
 timeStamp     | must match the timeStamp generated in fetchmonitors , used when useLocal flag is passed
 useLocal      | By default monitors are fetched from sourceAccount. A pre-fetched copy can be used by passing this flag.
 

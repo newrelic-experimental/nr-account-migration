@@ -117,7 +117,7 @@ if __name__ == '__main__':
     if not target_api_key:
         utils.error_and_exit('target_api_key', 'ENV_TARGET_API_KEY')
     personal_api_key = utils.ensure_personal_api_key(args)
-    if not target_api_key:
+    if not personal_api_key:
         utils.error_and_exit('personal_api_key', 'ENV_PERSONAL_API_KEY')
     cond_types = parse_condition_types(args)
     if len(cond_types) == 0:

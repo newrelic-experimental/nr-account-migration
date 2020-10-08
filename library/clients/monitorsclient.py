@@ -1,10 +1,12 @@
 import json
 import requests
 import os
+import time
 import library.migrationlogger as m_logger
 import library.monitortypes as monitortypes
 import library.status.monitorstatus as monitorstatus
 import library.securecredentials as securecredentials
+import library.clients.entityclient as ec
 
 
 # monitors provides REST client calls for fetching a monitor and a monitor script
@@ -82,8 +84,7 @@ def populate_script(api_key, monitor_json, monitor_id):
         logger.info("got script for " + monitor_name)
         monitor_json['script'] = script_response['body']
     else:
-        logger.error("Error fetching script for " + monitor_name +
-                     " code " + str(script_response['status']) +
+        logger.error("Error fetching script for " + monitor_name + " code " + str(script_response['status']) +
                      " message " + json.dumps(script_response['body']))
 
 
@@ -101,20 +102,34 @@ def put_script(api_key, monitor_json, monitor_name, monitor_status):
     logger.info(monitor_status[monitor_name])
 
 
-def apply_labels(api_key, monitor_labels, monitor_name, monitor_status):
+def get_target_monitor_guid(monitor_name, per_api_key, tgt_acct_id):
+    result = ec.gql_get_matching_entity_by_name(per_api_key, ec.SYNTH_MONITOR, monitor_name, tgt_acct_id)
+    monitor_guid = ''
+    if not result['entityFound']:
+        logger.warn('No matching entity found in target account ' + monitor_name)
+    else:
+        monitor_guid = result['entity']['guid']
+    return monitor_guid
+
+
+def apply_tags(tgt_acct_id, per_api_key, monitor_labels, monitor_name, monitor_status):
     if monitor_status[monitor_name]['status'] != 201:
         logger.warn('Skipping labels as monitor creation status is not 201')
         return
-    for monitor_label in monitor_labels:
-        label_response = requests.post(
-            monitor_label_url + monitor_status[monitor_name][NEW_MONITOR_ID] + '/labels',
-            headers=setup_headers(api_key), data=monitor_label)
-        logger.debug('Applied label ' + monitor_label + " : " + str(label_response.status_code))
-        if label_response.status_code == 201:
-            if 'labels' in monitor_status[monitor_name]:
-                monitor_status[monitor_name][monitorstatus.LABELS].append(monitor_label)
-            else:
-                monitor_status[monitor_name][monitorstatus.LABELS] = [monitor_label]
+    monitor_guid = get_target_monitor_guid(monitor_name, per_api_key, tgt_acct_id)
+    if not monitor_guid:
+        logger.warn('No matching entity found trying again ' + monitor_name)
+        time.sleep(0.5)
+        monitor_guid = get_target_monitor_guid(monitor_name, per_api_key, tgt_acct_id)
+    if not monitor_guid:
+        logger.warn('No matching entity found in second attempt. Try increasing above sleep to a second or two')
+    else:
+        logger.info('Adding labels as tags')
+        result = ec.gql_mutate_add_tags(per_api_key, monitor_guid, monitor_labels)
+        if 'error' not in result:
+            monitor_status[monitor_name][monitorstatus.LABELS] = [monitor_labels]
+        else:
+            monitor_status[monitor_name][monitorstatus.LABELS] = [result['error']]
 
 
 def post_monitor_definition(api_key, monitor_name, monitor, monitor_status):

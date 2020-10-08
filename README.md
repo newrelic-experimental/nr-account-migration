@@ -176,6 +176,8 @@ useLocal      | By default monitors are fetched from sourceAccount. A pre-fetche
 
 **Labels:** Any labels will be picked up from db/sourceAccount/monitor_labels if pre-fetched using fetchlabels
 
+**Note:** Synthetic Labels are migrated as tags
+
 **Status:**
 
 - output/sourceAccount_fromFile_targetAccount.csv

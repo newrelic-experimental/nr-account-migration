@@ -59,6 +59,9 @@ def update_notification_channels(tgt_api_key, source_policy, target_policy, load
                                  tgt_channels_by_type_name, all_alert_status):
     logger.info('Updating notification channels for ' + target_policy['name'])
     src_policy_id = str(source_policy['id'])
+    if not loaded_src_channels['channels_by_policy_id']:
+        logger.info('No notification channel subscriptions')
+        return
     if src_policy_id in loaded_src_channels['channels_by_policy_id']:
         src_channel_ids = loaded_src_channels['channels_by_policy_id'][src_policy_id]
     src_channels = []

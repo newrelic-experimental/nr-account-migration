@@ -280,6 +280,85 @@ def set_matched_entity_by_name(acct_id, entity_type, name, result):
             result['entity'] = entity
             break
 
+def get_entities_payload(entity_type, acct_id = None, nextCursor = None):
+    gql_search_type = 'APPLICATION'
+    if entity_type == SYNTH_MONITOR:
+        gql_search_type = 'MONITOR'
+    elif entity_type == DASHBOARD:
+        gql_search_type = 'DASHBOARD'
+
+    entity_search_query = '''query($matchingCondition: String!) { 
+                                    actor { 
+                                        entitySearch(query: $matchingCondition) {
+                                            count
+                                            results''' + ('' if not nextCursor else '(cursor: "' + nextCursor + '")') + ''' {
+                                                entities { ''' + entity_outline(entity_type) + '''
+                                                }
+                                                nextCursor
+                                            } 
+                                        } 
+                                    } 
+                                }
+                                '''
+    matching_condition = "type = '"+gql_search_type+"'"
+    if acct_id != None:
+        matching_condition += " AND tags.accountId = '" + str(acct_id) + "'"
+    variables = {'matchingCondition': matching_condition}
+    payload = {'query': entity_search_query, 'variables': variables}
+    return payload
+
+def gql_get_entities_by_type(api_key, entity_type, acct_id = None):
+    logger.info('Searching for entities by type:' + entity_type + ', acct:' + str(acct_id))
+
+    done = False
+    nextCursor = None
+    count = 0
+    result = {}
+    error = None
+    entities = []
+
+    while not done:
+        payload = get_entities_payload(entity_type, acct_id, nextCursor)
+
+        response = requests.post(GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
+        if response.status_code != 200:
+            done = True
+            if response.text:
+                error = response.text
+                logger.error("Error fetching entities : " +
+                            str(response.status_code) + " : " + response.text)
+            break
+
+        if not response.text:
+            done = True
+            break
+
+        response_json = response.json()
+        if 'errors' in response_json:
+            done = True
+            logger.error('Error : ' + response.text)
+            error = response_json['errors']
+            break
+
+        entitySearch = response_json['data']['actor']['entitySearch']
+        count = int(entitySearch['count'])
+        nextCursor = entitySearch['results']['nextCursor']
+
+        if 'entities' in entitySearch['results']:
+            for entity in entitySearch['results']['entities']:
+                entities.append(entity)
+
+        if not nextCursor:
+            done = True
+            break
+
+    if error != None:
+        result['error'] = error
+    else:
+        result['count'] = count
+        result['entities'] = entities
+
+    return result
 
 def show_url_for_app(entity_type, app_id):
     if MOBILE_APP == entity_type:
@@ -581,22 +660,67 @@ def post_dashboard(per_api_key, dashboard, acct_id):
     
     return result
 
-def delete_dashboard(api_key, dashboard_id):
-    delete_url = DEL_DASHBOARDS_URL + str(dashboard_id) + '.json'
-    result = requests.delete(delete_url, headers=rest_api_headers(api_key))
-    logger.info(result.url + ' : ' + str(result.status_code))
+def delete_dashboard_payload(guid):
+    delete_dashboard_query = '''mutation delete($guid: EntityGuid!) {
+                    dashboardDelete(guid: $guid) {
+                            errors {
+                                description
+                            }
+                            status
+                        }
+                    }'''
+    variables = {'guid': guid}
+    payload = {'query': delete_dashboard_query, 'variables': variables}
+    return payload
+
+def delete_dashboard(per_api_key, guid):
+    payload = delete_dashboard_payload(guid)
+    response = requests.post(GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
+    result = {'status': response.status_code}
+
+    if response.status_code != 200:
+        if response.text:
+            result['error'] = response.text
+            logger.error("Error delete dashboard with guid " + guid + " : " +
+                         str(response.status_code) + " : " + response.text)
+
+    if response.status_code == 200 and response.text:
+        response_json = response.json()
+        if 'errors' in response_json:
+            logger.error('Error : ' + response.text)
+            result['error'] = response_json['errors']
+        else:
+            dashboard_delete = response_json['data']['dashboardDelete']
+            if 'errors' in dashboard_delete and isinstance(dashboard_delete['errors'], collections.Sequence):
+                logger.error('Error : ' + response.text)
+                result['error'] = dashboard_delete['errors']
+            else:
+                logger.info('Success : ' + response.text)
+                result['entityDeleted'] = True
+    
     return result
 
-
-def delete_dashboards(api_key, dashboard_names):
+def delete_dashboards(per_api_key, dashboard_names, acct_id):
     for dashboard_name in dashboard_names:
-        result = get_dashboard_definition(api_key, dashboard_name)
-        if result['entityFound']:
-            delete_dashboard(api_key, result['entity']['id'])
+        result = get_dashboard_definition(per_api_key, dashboard_name, acct_id)
+        if result != None:
+            delete_dashboard(per_api_key, result['guid'])
 
 
-def delete_all_dashboards(api_key):
-    result = utils.get_paginated_entities(api_key, GET_DASHBOARDS_URL, 'dashboards')
-    for dashboard in result['dashboards']:
-        logger.info('Deleting ' + dashboard['title'])
-        delete_dashboard(api_key, dashboard['id'])
+def delete_all_dashboards(per_api_key, acct_id):
+    result = gql_get_entities_by_type(per_api_key, DASHBOARD, acct_id)
+    if 'error' in result:
+        logger.error('Error : ' + result['error'])
+        return
+
+    count = result['count']
+
+    if count <= 0:
+        logger.info('No dashboards to delete')
+        return
+
+    logger.info('Deleting ' + str(count) + ' dashboards')
+
+    for dashboard in result['entities']:
+        logger.info('Deleting ' + dashboard['name'])
+        delete_dashboard(per_api_key, dashboard['guid'])

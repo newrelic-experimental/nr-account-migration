@@ -3,7 +3,7 @@ import json
 import os
 import library.migrationlogger as m_logger
 import library.utils as utils
-
+import collections
 
 APM_APP = 'APM_APP'
 APM_KT = 'APM_KT'
@@ -11,6 +11,7 @@ BROWSER_APP = 'BROWSER_APP'
 APM_EXT_SVC = 'APM_EXT_SVC'
 MOBILE_APP = 'MOBILE_APP'
 SYNTH_MONITOR = 'SYNTH_MONITOR'
+DASHBOARD = 'DASHBOARD'
 
 GRAPHQL_URL = 'https://api.newrelic.com/graphql'
 SHOW_APM_APP_URL = 'https://api.newrelic.com/v2/applications/'
@@ -75,12 +76,22 @@ def entity_outline(entity_type):
                             name                            
                             monitorType 
                         }  '''
+    if entity_type == DASHBOARD:
+        return ''' ... on DashboardEntityOutline {
+                  guid
+                  name
+                  accountId
+                  type
+                  entityType
+                } '''
 
 
 def search_query_payload(entity_type, entity_name):
     gql_search_type = 'APPLICATION'
     if entity_type == SYNTH_MONITOR:
         gql_search_type = 'MONITOR'
+    elif entity_type == DASHBOARD:
+        gql_search_type = 'DASHBOARD'
     entity_search_query = '''query($matchingCondition: String!) { 
                                     actor { 
                                         entitySearch(query: $matchingCondition)  { 
@@ -161,6 +172,13 @@ def matched_browser_app_name(entity, tgt_account_id, name):
         matched = True
     return matched
 
+def matched_dashboard_name(entity, tgt_account_id, name):
+    matched = False
+    if entity['entityType'] == 'DASHBOARD_ENTITY' and \
+       str(entity['accountId']) == str(tgt_account_id) and \
+       entity['name'] == name:
+        matched = True
+    return matched
 
 def get_matching_kt(tgt_api_key, kt_name):
     filter_params = {'filter[name]': kt_name}
@@ -221,7 +239,7 @@ def set_matched_entity(entities, entity_type, result, src_entity, tgt_account_id
 
 
 def gql_get_matching_entity_by_name(api_key, entity_type, name, tgt_acct_id):
-    logger.info('Searching matching entity for type:' + entity_type + ', name:' + name + ', acct:' + tgt_acct_id)
+    logger.info('Searching matching entity for type:' + entity_type + ', name:' + name + ', acct:' + str(tgt_acct_id))
     payload = search_query_payload(entity_type, name)
     result = {'entityFound': False}
     response = requests.post(GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
@@ -257,6 +275,10 @@ def set_matched_entity_by_name(acct_id, entity_type, name, result):
         if entity_type == SYNTH_MONITOR and matched_synth_monitor_name(entity, acct_id, name):
             result['entityFound'] = True
             result['entity'] = entity
+        if entity_type == DASHBOARD and matched_dashboard_name(entity, acct_id, name):
+            result['entityFound'] = True
+            result['entity'] = entity
+            break
 
 
 def show_url_for_app(entity_type, app_id):
@@ -455,53 +477,109 @@ def gql_mutate_replace_tags(per_api_key, entity_guid, arr_label_keys):
     return result
 
 
-def get_dashboard_definition(api_key, name):
-    params = {'filter[title]': name}
-    result = {'entityFound': False, 'status': 404}
-    results = utils.get_paginated_entities(api_key, GET_DASHBOARDS_URL, DASHBOARDS, params)
-    if results['response_count'] <= 0:
-        return result
-    for dashboard in results[DASHBOARDS]:
-        if dashboard['title'] == name:
-            result['status'] = 200
-            result['entityFound'] = True
-            result['entity'] = dashboard
-            break
-    return result
+def get_dashboard_definition(per_api_key, name, acct_id):
+    result = gql_get_matching_entity_by_name(per_api_key, DASHBOARD, name, acct_id)
+    if not result['entityFound']:
+        return None
 
+    return result['entity']
 
-def get_dashboard_widgets(api_key, dashboard_id):
+def dashboard_query_payload(dashboard_guid):
+    dashboard_query = '''query ($guid: EntityGuid!)
+                    {
+                        actor {
+                            entity(guid: $guid) {
+                                guid
+                                ... on DashboardEntity {
+                                name
+                                permissions
+                                    pages {
+                                        name
+                                        widgets {
+                                            visualization { id }
+                                            title
+                                            layout { row width height column }
+                                            rawConfiguration
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    '''
+    variables = {'guid': dashboard_guid}
+    payload = {'query': dashboard_query, 'variables': variables}
+    return payload
+
+def get_dashboard_widgets(per_api_key, dashboard_guid):
     result = {'entityFound': False}
-    db_id = str(dashboard_id)
-    get_dashboard_url = SHOW_DASHBOARDS_URL + db_id + '.json'
-    response = requests.get(get_dashboard_url, headers=rest_api_headers(api_key))
+    payload = dashboard_query_payload(dashboard_guid)
+    response = requests.post(GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
     result['status'] = response.status_code
     if response.status_code != 200:
         if response.text:
-            logger.error("Error getting dashboard " + db_id)
             result['error'] = response.text
-    else:
-        if response.text:
-            response_json = response.json()
-            if 'dashboard' in response_json:
-                result['entityFound'] = True
-                result['entity'] = response_json['dashboard']
-    return result
+            logger.error("Error fetching dashboard with guid " + dashboard_guid + " : " +
+                            str(response.status_code) + " : " + response.text)
 
-
-def post_dashboard(api_key, dashboard):
-    response = requests.post(GET_DASHBOARDS_URL, headers=rest_api_headers(api_key), data=json.dumps(dashboard))
-    result = {'status': response.status_code}
-    if response.status_code != 200:
-        if response.text:
-            result['error'] = response.text
-            logger.error("Error creating Dashboard" + dashboard['title'] + " : " +
-                         str(response.status_code) + " : " + response.text)
     if response.status_code == 200 and response.text:
-        result['entityCreated'] = True
-        result['entity'] = response.json()
+        response_json = response.json()
+        if 'errors' in response_json:
+            if response.text:
+                result['error'] = response_json['errors']
+            logger.error(result)
+        else:
+            result['entityFound'] = True
+            result['entity'] = response_json['data']['actor']['entity']
+    else:
+        logger.warn('No response for this query response received ' + str(response))
+    logger.info('entity match result : ' + str(result))
     return result
 
+
+def create_dashboard_payload(acct_id, dashboard):
+    create_dashboard_query = '''mutation create($accountId: Int!, $dashboard: Input!) {
+          dashboardCreate(accountId: $accountId, dashboard: $dashboard) {
+            entityResult {
+              guid
+              name
+            }
+            errors {
+              description
+            }
+          }
+        }'''
+    variables = {'accountId': acct_id, 'dashboard': dashboard}
+    payload = {'query': create_dashboard_query, 'variables': variables}
+    return payload
+
+def post_dashboard(per_api_key, dashboard, acct_id):
+    payload = create_dashboard_payload(acct_id, dashboard)
+    response = requests.post(GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
+    result = {'status': response.status_code}
+
+    if response.status_code != 200 and response.status_code != 201:
+        if response.text:
+            result['error'] = response.text
+            logger.error("Error creating Dashboard" + dashboard['name'] + " : " +
+                         str(response.status_code) + " : " + response.text)
+
+    if (response.status_code == 200 or response.status_code == 201) and response.text:
+        response_json = response.json()
+        if 'errors' in response_json:
+            logger.error('Error : ' + response.text)
+            result['error'] = response_json['errors']
+        else:
+            dashboard_create = response_json['data']['dashboardCreate']
+            if 'errors' in dashboard_create and isinstance(dashboard_create['errors'], collections.Sequence):
+                logger.error('Error : ' + response.text)
+                result['error'] = dashboard_create['errors']
+            else:
+                logger.info('Success : ' + response.text)
+                result['entityCreated'] = True
+                result['entity'] = response_json['data']['dashboardCreate']['entityResult']
+    
+    return result
 
 def delete_dashboard(api_key, dashboard_id):
     delete_url = DEL_DASHBOARDS_URL + str(dashboard_id) + '.json'

@@ -29,24 +29,48 @@ def setup_params():
                                                                     or set environment variable ENV_TARGET_API_KEY')
 
 
-def get_dashboard(api_key, name, all_db_status):
-    result = ec.get_dashboard_definition(api_key, name)
-    if not result['entityFound']:
+def get_dashboard(per_api_key, name, all_db_status, acct_id, get_widgets = False):
+    result = ec.get_dashboard_definition(per_api_key, name, acct_id)
+    if not result:
         all_db_status[name][ds.DASHBOARD_FOUND] = False
         return None
+
     all_db_status[name][ds.DASHBOARD_FOUND] = True
-    src_dashboard = result['entity']
-    widgets_result = ec.get_dashboard_widgets(api_key, src_dashboard['id'])
+    if not get_widgets:
+        return result
+
+    widgets_result = ec.get_dashboard_widgets(per_api_key, result['guid'])
     if 'error' in widgets_result:
         all_db_status[name][ds.ERROR] = result['error']
         log.error('Error fetching dashboard widgets' + name + '  ' + result['error'])
         return None
-    if not result['entityFound']:
+
+    if not widgets_result['entityFound']:
         all_db_status[name][ds.WIDGETS_FOUND] = False
         return None
+
     all_db_status[name][ds.WIDGETS_FOUND] = True
     return widgets_result['entity']
 
+
+def update_nrql_account_ids(src_acct_id, tgt_acct_id, entity):
+    if not 'pages' in entity:
+        return
+
+    for page in entity['pages']:
+        if not 'widgets' in page:
+            continue
+
+        for widget in page['widgets']:
+            if not 'rawConfiguration' in widget:
+                continue
+
+            if not 'nrqlQueries' in widget['rawConfiguration']:
+                continue
+
+            for query in widget['rawConfiguration']['nrqlQueries']:
+                if 'accountId' in query and query['accountId'] == src_acct_id:
+                    query['accountId'] = tgt_acct_id
 
 def migrate_dashboards(from_file, src_acct, src_api_key, tgt_acct, tgt_api_key):
     log.info('Dashboard migration started.')
@@ -54,25 +78,25 @@ def migrate_dashboards(from_file, src_acct, src_api_key, tgt_acct, tgt_api_key):
     all_db_status = {}
     for db_name in db_names:
         all_db_status[db_name] = {}
-        tgt_dashboard = get_dashboard(tgt_api_key, db_name, all_db_status)
+        tgt_dashboard = get_dashboard(tgt_api_key, db_name, all_db_status, tgt_acct)
         if tgt_dashboard is not None:
             log.warning('Dashboard already exists in target skipping : ' + db_name)
             all_db_status[db_name][ds.TARGET_EXISTED] = True
             continue
         all_db_status[db_name][ds.TARGET_EXISTED] = False
-        src_dashboard = get_dashboard(src_api_key, db_name, all_db_status)
+        src_dashboard = get_dashboard(src_api_key, db_name, all_db_status, src_acct, True)
         if src_dashboard is None:
             continue
         log.info('Found source dashboard ' + db_name)
-        if 'metadata' not in src_dashboard:
-            src_dashboard['metadata'] = {'version': 1}
-        tgt_dashboard = {"dashboard": src_dashboard}
-        result = ec.post_dashboard(tgt_api_key, tgt_dashboard)
+        tgt_dashboard = src_dashboard
+        del tgt_dashboard['guid']
+        update_nrql_account_ids(src_acct, tgt_acct, tgt_dashboard)
+        result = ec.post_dashboard(tgt_api_key, tgt_dashboard, tgt_acct)
         all_db_status[db_name][ds.STATUS] = result['status']
         if result['entityCreated']:
             log.info('Created target dashboard ' + db_name)
             all_db_status[db_name][ds.DASHBOARD_CREATED] = True
-            all_db_status[db_name][ds.TARGET_DASHBOARD] = result['entity']['dashboard']['ui_url']
+            all_db_status[db_name][ds.TARGET_DASHBOARD] = result['entity']['guid']
     db_status_file = str(src_acct) + '_' + utils.file_name_from(from_file) + '_dashboards_' + str(tgt_acct) + '.csv'
     store.save_status_csv(db_status_file, all_db_status, ds)
     log.info('Dashboard migration complete.')

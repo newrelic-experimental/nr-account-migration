@@ -11,7 +11,7 @@ logger = m_logger.get_logger(os.path.basename(__file__))
 
 
 def setup_headers(api_key):
-    return {'X-Api-Key': api_key, 'Content-Type': 'Application/JSON'}
+    return {'Api-Key': api_key, 'Content-Type': 'Application/JSON'}
 
 
 def get_next_url(rsp_headers):

@@ -10,7 +10,7 @@ import library.securecredentials as securecredentials
 
 # fetch monitors from an account
 # sourceAccount : account to fetch the monitors from
-# sourceApiKey : Admin API Key for the account
+# sourceApiKey : User API Key for the account for a user with admin (or add on / custom role equivalent) access to Synthetics
 # toFile : file name only for the output file
 # the toFile will be written to output sub-directory
 # If file exists then it will be overwritten
@@ -51,10 +51,10 @@ def setup_headers(api_key):
     global source_api_key
     if args.sourceApiKey:
         source_api_key = api_key
-        headers['X-Api-Key'] = args.sourceApiKey[0]
+        headers['Api-Key'] = args.sourceApiKey[0]
     else:
         source_api_key = os.environ.get('ENV_SOURCE_API_KEY')
-        headers['X-Api-Key'] = source_api_key
+        headers['Api-Key'] = source_api_key
     logger.debug(headers)
     validate_keys()
 

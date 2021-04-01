@@ -11,13 +11,15 @@ import library.migrator.synth_conditions as sc_migrator
 import library.migrator.app_conditions as ac_migrator
 import library.migrator.nrql_conditions as nrql_migrator
 import library.migrator.extsvc_conditions as extsvc_migrator
+import library.migrator.infra_conditions as infra_migrator
 
 logger = logger.get_logger(os.path.basename(__file__))
 SYNTHETICS = 'synthetics'
 APP_CONDITIONS = 'app-conditions'
 NRQL_CONDITIONS = 'nrql-conditions'
 EXT_SVC_CONDITIONS = 'ext-svc-conditions'
-ALL_CONDITIONS = [SYNTHETICS, APP_CONDITIONS, NRQL_CONDITIONS, EXT_SVC_CONDITIONS]  # currently used only for testing
+INFRA_CONDITIONS = 'infra-conditions'
+ALL_CONDITIONS = [SYNTHETICS, APP_CONDITIONS, NRQL_CONDITIONS, EXT_SVC_CONDITIONS, INFRA_CONDITIONS]  # currently used only for testing
 
 
 def setup_params():
@@ -38,6 +40,8 @@ def setup_params():
                         help='Pass --nrql_conditions to migrate NRQL conditions')
     parser.add_argument('--ext_svc_conditions', dest='ext_svc_conditions', required=False, action='store_true',
                         help='Pass --ext_svc_conditions to migrate external service conditions')
+    parser.add_argument('--infra_conditions', dest='infra_conditions', required=False, action='store_true',
+                        help='Pass --infra_conditions to migrate infrastructure conditions')
 
 
 def print_args(per_api_key, src_api_key, tgt_api_key):
@@ -55,6 +59,8 @@ def print_args(per_api_key, src_api_key, tgt_api_key):
         logger.info("Migrating conditions of type " + NRQL_CONDITIONS)
     if args.ext_svc_conditions:
         logger.info("Migrating conditions of type " + EXT_SVC_CONDITIONS)
+    if args.infra_conditions:
+        logger.info("Migrating conditions of type " + INFRA_CONDITIONS)
 
 
 def migrate_conditions(from_file, per_api_key, src_account_id, src_api_key, tgt_account_id, tgt_api_key, cond_types):
@@ -89,6 +95,9 @@ def migrate_conditions(from_file, per_api_key, src_account_id, src_api_key, tgt_
         if EXT_SVC_CONDITIONS in cond_types:
             extsvc_migrator.migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_account_id,
                                   tgt_api_key, tgt_policy)
+        if INFRA_CONDITIONS in cond_types:
+            infra_migrator.migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_account_id, 
+                                tgt_api_key, tgt_policy)
     status_file = src_account_id + '_' + utils.file_name_from(from_file) + '_' + tgt_account_id + '_conditions.csv'
     store.save_status_csv(status_file, all_alert_status, cs)
 
@@ -103,6 +112,8 @@ def parse_condition_types(args):
         condition_types.append(NRQL_CONDITIONS)
     if args.ext_svc_conditions:
         condition_types.append(EXT_SVC_CONDITIONS)
+    if args.infra_conditions:
+        condition_types.append(INFRA_CONDITIONS)
     return condition_types
 
 
@@ -122,7 +133,7 @@ if __name__ == '__main__':
     cond_types = parse_condition_types(args)
     if len(cond_types) == 0:
         logger.error('At least one condition type must be specified currently supported ' +
-                     SYNTHETICS + ',' + APP_CONDITIONS + ',' + NRQL_CONDITIONS)
+                     SYNTHETICS + ',' + APP_CONDITIONS + ',' + NRQL_CONDITIONS + ',' + INFRA_CONDITIONS)
         sys.exit()
     print_args(personal_api_key, source_api_key, target_api_key)
     logger.info('Starting Alert Conditions Migration')

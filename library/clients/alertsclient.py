@@ -37,6 +37,12 @@ CREATE_EXTSVC_CONDITION_URL = 'https://api.newrelic.com/v2/alerts_external_servi
 EXTSVC_CONDITIONS = 'external_service_conditions'
 EXTSVC_CONDITION = 'external_service_condition'
 
+INFRA_CONDITIONS_URL = 'https://infra-api.newrelic.com/v2/alerts/conditions'
+CREATE_INFRA_CONDITION_URL = 'https://infra-api.newrelic.com/v2/alerts/conditions'
+INFRA_CONDITIONS = 'data'
+INFRA_CONDITION = 'data'
+INFRA_PAGINATION = 'infra'
+
 ALERTS_CHANNEL_URL = 'https://api.newrelic.com/v2/alerts_channels.json'
 DEL_CHANNELS_URL = 'https://api.newrelic.com/v2/alerts_channels/'
 CHANNELS = "channels"
@@ -48,7 +54,7 @@ POLICY_NAME = 'policy_name'
 
 
 def setup_headers(api_key):
-    return {'X-Api-Key': api_key, 'Content-Type': 'Application/JSON'}
+    return {'Api-Key': api_key, 'Content-Type': 'application/json'}
 
 
 def get_all_alert_policies(api_key):
@@ -121,6 +127,10 @@ def get_app_conditions(api_key, alert_id):
 def get_extsvc_conditions(api_key, policy_id):
     params = {'policy_id': policy_id}
     return utils.get_paginated_entities(api_key, EXTSVC_CONDITIONS_URL, EXTSVC_CONDITIONS, params)
+
+def get_infra_conditions(api_key, policy_id):
+    params = {'policy_id': policy_id, 'limit': 50, 'offset': 0}
+    return utils.get_paginated_entities(api_key, INFRA_CONDITIONS_URL, INFRA_CONDITIONS, params, INFRA_PAGINATION)
 
 
 def create_channel(api_key, channel):
@@ -279,6 +289,18 @@ def create_alert_condition(api_key, create_url, cond_key, alert_policy, conditio
 def create_extsvc_condition(api_key, alert_policy, condition):
     return create_alert_condition(api_key, CREATE_EXTSVC_CONDITION_URL, EXTSVC_CONDITION, alert_policy, condition)
 
+def create_infra_condition(api_key, alert_policy, condition):
+    payload = {INFRA_CONDITION: condition}
+    result = {}
+    response = requests.post(CREATE_INFRA_CONDITION_URL, headers=setup_headers(api_key),
+                             data=json.dumps(payload))
+    result['status'] = response.status_code
+    if response.status_code != 201:
+        if response.text:
+            result['error'] = response.text
+            logger.error("Error creating app condition for " + alert_policy['name'] +
+                         " : " + condition['name'] + ":" + str(response.status_code) + " : " + response.text)
+    return result
 
 def delete_condition(api_key, alert_policy, app_condition):
     delete_url = APP_CONDITIONS_URL + str(app_condition['id']) + '.json'
@@ -311,3 +333,10 @@ def app_conditions_by_name_entity(api_key, policy_id):
         for entity_id in app_condition['entities']:
             conditions_by_name_entity[app_condition['name'] + str(entity_id)] = app_condition
     return conditions_by_name_entity
+
+def infra_conditions_by_name(api_key, policy_id):
+    conditions_by_name = {}
+    infra_conditions = get_infra_conditions(api_key, policy_id)[INFRA_CONDITIONS]
+    for infra_condition in infra_conditions:
+        conditions_by_name[infra_condition['name']] = infra_condition
+    return conditions_by_name

@@ -48,7 +48,7 @@ POLICY_NAME = 'policy_name'
 
 
 def setup_headers(api_key):
-    return {'X-Api-Key': api_key, 'Content-Type': 'Application/JSON'}
+    return {'Api-Key': api_key, 'Content-Type': 'Application/JSON'}
 
 
 def get_all_alert_policies(api_key):

@@ -11,7 +11,7 @@ VIOLATIONS = 'violations'
 
 
 def setup_headers(api_key):
-    return {'X-Api-Key': api_key, 'Content-Type': 'Application/JSON'}
+    return {'Api-Key': api_key, 'Content-Type': 'Application/JSON'}
 
 
 def get_all_alert_violations(api_key, start_date, end_date, only_open):

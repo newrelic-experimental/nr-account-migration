@@ -123,7 +123,7 @@ usage: fetchmonitors.py [-h] --sourceAccount SOURCEACCOUNT
 Parameter        | Note
 ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 sourceAccount    | Account to fetch monitors from
-sourceApiKey     | This should be the Admin API Key for sourceAccount
+sourceApiKey     | This should be a User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 insightsQueryKey | must be supplied to fetch secure credentials from Insights for any monitors that ran in the past 7 days. Secure credentials fetching is skipped if this is not passed.
 toFile           | should only be a file name e.g. soure-monitors.csv. It will always be created in output/ directory
 
@@ -166,9 +166,9 @@ Parameter     | Note
 ------------- | --------------------------------------------------------------------------------------------------------
 fromFile      | must contain monitor names one per line
 sourceAccount | Account to fetch monitors from
-sourceApiKey  | This should be the Admin API Key for sourceAccount
+sourceApiKey  | This should be a User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 targetAccount | Account to migrate monitors to
-targetApiKey  | This should be the Admin API Key for targetAccount
+targetApiKey  | This should be a User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 personalApiKey | Personal API Key used for GraphQL API Client calls (required to apply tags)
 timeStamp     | must match the timeStamp generated in fetchmonitors , used when useLocal flag is passed
 useLocal      | By default monitors are fetched from sourceAccount. A pre-fetched copy can be used by passing this flag.
@@ -199,9 +199,9 @@ Parameter     | Note
 ------------- | ------------------------------------------------------------------------------------------------------
 fromFile      | must contain alert policy names one per line
 sourceAccount | Account to fetch monitors from
-sourceApiKey  | Admin API Key for sourceAccount
+sourceApiKey  | User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Alerts
 targetAccount | Account to migrate policies to
-targetApiKey  | Admin API Key for targetAccount
+targetApiKey  | User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Alerts
 useLocal      | By alert channels are fetched from sourceAccount. A pre-fetched copy can be used by passing this flag.
 
 The script migrates alert policies to target account if not present in target account.
@@ -227,9 +227,9 @@ Parameter      | Note
 fromFile       | must contain alert policy names one per line
 personalApiKey | Personal API Key used for GraphQL API Client calls
 sourceAccount  | Account to fetch monitors from
-sourceApiKey   | Admin API Key for sourceAccount
+sourceApiKey   | User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Alerts
 targetAccount  | Account to migrate policies to
-targetApiKey   | Admin API Key for targetAccount
+targetApiKey   | User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Alerts
 synthetics     | Pass this flag to migrate synthetic conditions
 app_conditions | Pass this flag to migrate alert conditions for APM, Browser apps, Key Transactions
 nrql_conditions | Migrate nrql conditions in the alert policies
@@ -286,7 +286,7 @@ Parameter     | Note
 ------------- | -------------------------------------------------------------------------
 fromFile      | specifies the file with relative path, listing the monitors to be updated
 targetAccount | Account in which monitors need to be updated
-targetApiKey  | This should be the Admin API Key for targetAccount
+targetApiKey  | This should be a User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 timeStamp     | must match the timeStamp generated in fetchmonitors
 renamePrefix  | Monitors are renamed with this prefix
 disable       | Monitors are disabled

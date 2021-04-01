@@ -14,7 +14,7 @@ query_secure_credentials_for = "FROM SyntheticCheck SELECT uniques(secureCredent
 
 
 def setup_headers(api_key):
-    return {'X-Api-Key': api_key, 'Content-Type': 'Application/JSON'}
+    return {'Api-Key': api_key, 'Content-Type': 'Application/JSON'}
 
 
 def from_script(script):

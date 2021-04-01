@@ -22,7 +22,7 @@ def setup_params():
 
 
 def setup_headers(api_key):
-    return {'X-Api-Key': api_key}
+    return {'Api-Key': api_key}
 
 
 def print_params():

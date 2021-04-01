@@ -31,7 +31,7 @@ logger = m_logger.get_logger(os.path.basename(__file__))
 
 
 def rest_api_headers(api_key):
-    return {'X-Api-Key': api_key, 'Content-Type': 'Application/JSON'}
+    return {'Api-Key': api_key, 'Content-Type': 'Application/JSON'}
 
 
 def gql_headers(api_key):

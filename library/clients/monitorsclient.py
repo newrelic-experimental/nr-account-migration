@@ -21,7 +21,7 @@ MON_SEC_CREDENTIALS = 'secureCredentials'
 
 
 def setup_headers(api_key):
-    return {'X-Api-Key': api_key, 'Content-Type': 'Application/JSON'}
+    return {'Api-Key': api_key, 'Content-Type': 'Application/JSON'}
 
 
 def fetch_script(api_key, monitor_id):

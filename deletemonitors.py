@@ -36,8 +36,8 @@ def setup_headers():
         target_api_key = args.targetApiKey[0]
     else:
         target_api_key = os.environ.get('ENV_TARGET_API_KEY')
-    headers['X-Api-Key'] = target_api_key
-    if not headers['X-Api-Key']:
+    headers['Api-Key'] = target_api_key
+    if not headers['Api-Key']:
         logger.error('Error: Missing API Key. either pass as param ---targetApiKey or \
             environment variable ENV_TARGET_API_KEY.\n \
             e.g. export ENV_TARGET_API_KEY="NRNA7893asdfhkh"')

@@ -56,7 +56,6 @@ POLICY_NAME = 'policy_name'
 def setup_headers(api_key):
     return {'Api-Key': api_key, 'Content-Type': 'application/json'}
 
-
 def get_all_alert_policies(api_key):
     return utils.get_paginated_entities(api_key, ALERT_POLICIES_URL, POLICIES)
 

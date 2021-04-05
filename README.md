@@ -27,8 +27,9 @@ Alert Conditions as below. Target entities replaced wherever applicable and foun
 - [x] Browser App Conditions (ensure target app with similar name is running)
 - [x] Mobile App Conditions 
 - [x] Key Transaction Conditions
-- [x] NRQL conditions (migrated as is)
+- [x] NRQL Conditions (migrated as is)
 - [x] External Service Conditions 
+- [x] Infrastructure Conditions (migrated as is)
 
 
 - [x] Synthetic Labels (migrated as Tags)
@@ -96,8 +97,9 @@ Target entities replaced wherever applicable and found in target account.
 - [x] Browser App Conditions (ensure target app with similar name is running)
 - [x] Mobile App Conditions 
 - [x] Key Transaction Conditions
-- [x] NRQL conditions (migrated as is)
-- [x] External Service Conditions 
+- [x] NRQL Conditions (migrated as is)
+- [x] External Service Conditions
+- [x] Infrastructure Conditions (migrated as is) 
 
 
 Other Entities
@@ -220,7 +222,7 @@ If alert policy is present then only notification channels are migrated if not p
 
 Any target APM , Browser, Mobile apps and Key transactions must be migrated manually.
 
-`usage: migrateconditions.py [-h] --fromFile FROMFILE --personalApiKey PERSONALAPIKEY --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetApiKey TARGETAPIKEY] [--synthetics --apm_conditions --nrql_conditions]`
+`usage: migrateconditions.py [-h] --fromFile FROMFILE --personalApiKey PERSONALAPIKEY --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetApiKey TARGETAPIKEY] [--synthetics --app_conditions --nrql_conditions --infra_conditions]`
 
 Parameter      | Note
 -------------- | --------------------------------------------------
@@ -234,6 +236,7 @@ synthetics     | Pass this flag to migrate synthetic conditions
 app_conditions | Pass this flag to migrate alert conditions for APM, Browser apps, Key Transactions
 nrql_conditions | Migrate nrql conditions in the alert policies
 ext_svc_conditions | Migrate External Service conditions in the alert policies
+infra_conditions | Migrate infrastructure conditions in the alert policies
 
 
 This script loads sourceAlertPolicy and alertConditions.

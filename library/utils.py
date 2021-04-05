@@ -7,11 +7,14 @@ import requests
 
 
 DEFAULT_INDENT = 2
+
+NORMAL_PAGINATION = 'normal'
+INFRA_PAGINATION = 'infra'
 logger = m_logger.get_logger(os.path.basename(__file__))
 
 
 def setup_headers(api_key):
-    return {'Api-Key': api_key, 'Content-Type': 'Application/JSON'}
+    return {'Api-Key': api_key, 'Content-Type': 'application/json'}
 
 
 def get_next_url(rsp_headers):
@@ -32,7 +35,7 @@ def get_next_url(rsp_headers):
 
 # Logic borrowed from Brian Peck
 # returns all_entities { response_count : COUNT, entity_key : [] }
-def get_paginated_entities(api_key, fetch_url, entity_key, params={}):
+def get_paginated_entities(api_key, fetch_url, entity_key, params={}, pageType=NORMAL_PAGINATION):
     another_page = True
     error = False
     curr_fetch_url = fetch_url
@@ -43,7 +46,14 @@ def get_paginated_entities(api_key, fetch_url, entity_key, params={}):
             resp_json = json.loads(resp.text)
             all_entities[entity_key].extend(resp_json[entity_key])
             all_entities['response_count'] = all_entities['response_count'] + len(resp_json[entity_key])
-            next_url = get_next_url(resp.headers)
+            if pageType == INFRA_PAGINATION:
+                # Infrastrucure alerts API handles pagination via offset and limit parameters
+                next_url = ''
+                if resp_json['meta']['total'] > (resp_json['meta']['limit'] + resp_json['meta']['offset']):
+                    next_url = curr_fetch_url
+                    params['offset'] = params['offset'] + params['limit']
+            else:
+                next_url = get_next_url(resp.headers)
             if next_url:
                 curr_fetch_url = next_url
             else:

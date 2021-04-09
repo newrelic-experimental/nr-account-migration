@@ -112,26 +112,6 @@ def get_target_monitor_guid(monitor_name, per_api_key, tgt_acct_id):
     return monitor_guid
 
 
-def apply_tags(tgt_acct_id, per_api_key, monitor_labels, monitor_name, monitor_status):
-    if monitor_status[monitor_name]['status'] != 201:
-        logger.warn('Skipping labels as monitor creation status is not 201')
-        return
-    monitor_guid = get_target_monitor_guid(monitor_name, per_api_key, tgt_acct_id)
-    if not monitor_guid:
-        logger.warn('No matching entity found trying again ' + monitor_name)
-        time.sleep(0.5)
-        monitor_guid = get_target_monitor_guid(monitor_name, per_api_key, tgt_acct_id)
-    if not monitor_guid:
-        logger.warn('No matching entity found in second attempt. Try increasing above sleep to a second or two')
-    else:
-        logger.info('Adding labels as tags')
-        result = ec.gql_mutate_add_tags(per_api_key, monitor_guid, monitor_labels)
-        if 'error' not in result:
-            monitor_status[monitor_name][monitorstatus.LABELS] = [monitor_labels]
-        else:
-            monitor_status[monitor_name][monitorstatus.LABELS] = [result['error']]
-
-
 def post_monitor_definition(api_key, monitor_name, monitor, monitor_status):
     prep_monitor = monitortypes.prep_monitor_type(monitor['definition'])
     monitor_json_str = json.dumps(prep_monitor)

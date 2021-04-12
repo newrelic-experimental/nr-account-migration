@@ -3,7 +3,6 @@ import time
 
 import deleteallmonitors as deleter
 import fetchchannels as fetchchannels
-import fetchlabels as fetchlabels
 import fetchmonitors as fetchmonitors
 import library.clients.alertsclient as ac
 import library.clients.entityclient as ec
@@ -71,8 +70,6 @@ def fetch():
     logger.info('Fetching')
     time_stamp = fetchmonitors.fetch_monitors(SRC_API_KEY, SRC_ACCT, MON_LIST_FILE, SRC_INSIGHTS_KEY)
     logger.info('Timestamp for fetched monitors ' + time_stamp)
-    logger.info('Fetching labels')
-    fetchlabels.fetch_labels(SRC_API_KEY, SRC_ACCT)
     logger.info('Fetching alert channels for policies')
     fetchchannels.fetch_alert_channels(SRC_API_KEY, SRC_ACCT)
 

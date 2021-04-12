@@ -7,9 +7,8 @@ import library.clients.entityclient as ec
 import library.status.appstatus as appkeys
 
 logger = m_logger.get_logger(os.path.basename(__file__))
-MIGRATE_LABELS = 'labels'
 MIGRATE_SETTINGS = 'settings'
-DEFAULT_MIGRATE_LIST = (MIGRATE_LABELS, MIGRATE_SETTINGS)
+DEFAULT_MIGRATE_LIST = (MIGRATE_SETTINGS)
 # api_key: { appName: srcEntity }
 app_src_entities = {}
 app_names = []
@@ -19,7 +18,6 @@ def setup_params(parser):
     parser.add_argument('--fromFile', nargs=1, type=str, required=True, help='Path to file with monitor names')
     parser.add_argument('--sourceAccount', nargs=1, type=str, required=True, help='Source accountId local Store \
                                                                         like db/<sourceAccount>/monitors .')
-    parser.add_argument('--personalApiKey', nargs=1, type=str, required=True, help='Personal API Key')
     parser.add_argument('--sourceApiKey', nargs=1, type=str, required=True, help='Source account API Key')
     parser.add_argument('--targetAccount', nargs=1, type=str,  required=True, help='Target accountId or \
                                                                         set environment variable ENV_SOURCE_API_KEY')
@@ -27,30 +25,16 @@ def setup_params(parser):
                     or set environment variable ENV_TARGET_API_KEY')
     parser.add_argument('--settings', dest='settings', required=False, action='store_true',
                         help='Pass --settings to migrate settings for apdex thresholds and real end user monitoring')
-    parser.add_argument('--labels', dest='labels', required=False, action='store_true',
-                        help='Pass --labels to migrate labels from a source account app to target account')
 
-
-def print_args(src_api_key, tgt_api_key, per_api_key):
+def print_args(src_api_key, tgt_api_key):
     logger.info("Using fromFile : " + args.fromFile[0])
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4]) * "*" + src_api_key[-4:])
-    logger.info("Using personalApiKey : " + len(per_api_key[:-4]) * "*" + per_api_key[-4:])
     logger.info("Using targetAccount : " + str(args.targetAccount[0]))
     logger.info("Using targetApiKey : " + len(tgt_api_key[:-4]) * "*" + tgt_api_key[-4:])
     if args.settings:
         logger.info("Migrating APM Settings")
-    if args.labels:
-        logger.info("Migrating APM Labels")
-
-
-def update_labels_by_app(labels_by_app, app_id, app_labels):
-    for app_label in app_labels:
-        if app_label in labels_by_app:
-            labels_by_app[app_label].append(app_id)
-        else:
-            labels_by_app[app_label] = [app_id]
-
+    
 
 def get_entity_by_name(api_key, app_name):
     result = ec.get_apm_entity_by_name(api_key, app_name)
@@ -103,49 +87,9 @@ def update_settings_status(all_apps_status, app_name, result):
     all_apps_status[app_name][appkeys.ENABLE_RUM] = result['application']['settings']['enable_real_user_monitoring']
 
 
-def migrate_labels(from_file, src_acct, src_api_key, per_api_key, tgt_acct, all_apps_status):
-    logger.info('Labels migration started.')
-    global app_names
-    app_names = store.load_names(from_file)
-    apm_labels = store.load_apm_labels(src_acct)
-    # tgt_guid { labels: [], entity: {} }
-    tgt_guid_entity_labels = {}
-    for app_name in app_names:
-        src_entity = get_src_entity(src_api_key, app_name)
-        if src_entity is None:
-            continue
-        tgt_result = ec.gql_get_matching_entity_by_name(per_api_key, ec.APM_APP, src_entity['name'], tgt_acct)
-        if tgt_result['entityFound']:
-            tgt_entity = tgt_result['entity']
-            tgt_guid = tgt_entity['guid']
-            src_app_id = str(src_entity['id'])
-            if src_app_id in apm_labels:
-                tgt_guid_entity_labels[tgt_guid] = {'labels': apm_labels[src_app_id], 'entity': tgt_entity}
-            else:
-                logger.warn('Labels not found for ' + app_name + ' in ' + store.apm_labels_location(src_acct))
-                logger.warn('Make sure you have run fetchlabels for this account and this app has labels ')
-        else:
-            logger.warn('App not found for one of the accounts src:' + str(src_entity) + " tgt:" + str(tgt_result))
-    for tgt_guid in tgt_guid_entity_labels:
-        tgt_app_name = tgt_guid_entity_labels[tgt_guid]['entity']['name']
-        tgt_app_labels = tgt_guid_entity_labels[tgt_guid]['labels']
-        result = ec.gql_mutate_add_tags(per_api_key, tgt_guid, tgt_app_labels)
-        update_label_status(all_apps_status, result, tgt_app_labels, tgt_app_name)
-
-
-def update_label_status(all_apps_status, result, tgt_app_labels, tgt_app_name):
-    all_apps_status[tgt_app_name] = {appkeys.STATUS: result['status']}
-    if 'error' in result:
-        all_apps_status[tgt_app_name][appkeys.ERROR] = result['error']
-    else:
-        all_apps_status[tgt_app_name][appkeys.LABELS] = tgt_app_labels
-
-
-def migrate_apps(from_file, src_acct, src_api_key, per_api_key,
+def migrate_apps(from_file, src_acct, src_api_key, 
                  tgt_acct, tgt_api_key, migrate_list=DEFAULT_MIGRATE_LIST):
     all_apps_status = {}
-    if MIGRATE_LABELS in migrate_list:
-        migrate_labels(from_file, src_acct, src_api_key, per_api_key, tgt_acct, all_apps_status)
     if MIGRATE_SETTINGS in migrate_list:
         migrate_settings(from_file, src_api_key, tgt_api_key, all_apps_status)
     file_name = utils.file_name_from(from_file)
@@ -154,7 +98,7 @@ def migrate_apps(from_file, src_acct, src_api_key, per_api_key,
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Migrate Labels for list of apps from one account to another')
+    parser = argparse.ArgumentParser(description='Migrate APM settings for list of apps from one account to another')
     setup_params(parser)
     args = parser.parse_args()
     source_api_key = utils.ensure_source_api_key(args)
@@ -163,16 +107,11 @@ if __name__ == '__main__':
     target_api_key = utils.ensure_target_api_key(args)
     if not target_api_key:
         utils.error_and_exit('targetApiKey', 'ENV_TARGET_API_KEY')
-    personal_api_key = utils.ensure_personal_api_key(args)
-    if not personal_api_key:
-        utils.error_and_exit('personalApiKey', 'ENV_PERSONAL_API_KEY')
     if not args.settings and not args.labels:
         logger.error("One or both of --labels or --settings must be passed")
-    print_args(source_api_key, target_api_key, personal_api_key)
+    print_args(source_api_key, target_api_key)
     mig_list = []
-    if args.labels:
-        mig_list.append(MIGRATE_LABELS)
     if args.settings:
         mig_list.append(MIGRATE_SETTINGS)
-    migrate_apps(args.fromFile[0], args.sourceAccount[0], source_api_key, personal_api_key,
+    migrate_apps(args.fromFile[0], args.sourceAccount[0], source_api_key, 
                  args.targetAccount[0], target_api_key, mig_list)

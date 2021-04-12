@@ -11,7 +11,24 @@ BROWSER_APP = 'BROWSER_APP'
 APM_EXT_SVC = 'APM_EXT_SVC'
 MOBILE_APP = 'MOBILE_APP'
 SYNTH_MONITOR = 'SYNTH_MONITOR'
+SYNTH_SECURE_CRED = 'SYNTH_SECURE_CRED'
 DASHBOARD = 'DASHBOARD'
+INFRA_HOST = 'INFRA_HOST'
+INFRA_INT = 'INFRA_INT'
+INFRA_LAMBDA = 'INFRA_LAMBDA'
+
+# Mapping to entityType tag values
+ent_type_lookup = {}
+ent_type_lookup[APM_APP] = 'APM_APPLICATION_ENTITY'
+ent_type_lookup[BROWSER_APP] = 'BROWSER_APPLICATION_ENTITY'
+ent_type_lookup[MOBILE_APP] = 'MOBILE_APPLICATION_ENTITY'
+ent_type_lookup[SYNTH_MONITOR] = 'SYNTHETIC_MONITOR_ENTITY'
+ent_type_lookup[SYNTH_SECURE_CRED] = 'SECURE_CREDENTIAL_ENTITY'
+ent_type_lookup[DASHBOARD] = 'DASHBOARD_ENTITY'
+ent_type_lookup[INFRA_HOST] = 'INFRASTRUCTURE_HOST_ENTITY'
+ent_type_lookup[INFRA_INT] = 'GENERIC_INFRASTRUCTURE_ENTITY'
+ent_type_lookup[INFRA_LAMBDA] = 'INFRASTRUCTURE_AWS_LAMBDA_FUNCTION_ENTITY'
+
 
 GRAPHQL_URL = 'https://api.newrelic.com/graphql'
 SHOW_APM_APP_URL = 'https://api.newrelic.com/v2/applications/'
@@ -48,6 +65,10 @@ def entity_outline(entity_type):
                         type
                         language
                         entityType
+                        tags {
+                            key
+                            values
+                        }
                     } '''
     if entity_type == BROWSER_APP:
         return ''' ... on BrowserApplicationEntityOutline {
@@ -57,6 +78,10 @@ def entity_outline(entity_type):
                                 accountId
                                 type
                                 entityType
+                                tags {
+                                    key
+                                    values
+                                }
                             } '''
     if entity_type == MOBILE_APP:
         return ''' ... on MobileApplicationEntityOutline {
@@ -66,6 +91,10 @@ def entity_outline(entity_type):
                         accountId
                         type                        
                         entityType
+                        tags {
+                            key
+                            values
+                        }
                     } '''
     if entity_type == SYNTH_MONITOR:
         return ''' ... on SyntheticMonitorEntityOutline {
@@ -74,7 +103,23 @@ def entity_outline(entity_type):
                             accountId
                             monitorId
                             name                            
-                            monitorType 
+                            monitorType
+                            tags {
+                                key
+                                values
+                            } 
+                        }  '''
+    if entity_type == SYNTH_SECURE_CRED:
+        return ''' ... on SecureCredentialEntityOutline {
+                            guid
+                            entityType
+                            accountId
+                            name                            
+                            secureCredentialId
+                            tags {
+                                key
+                                values
+                            } 
                         }  '''
     if entity_type == DASHBOARD:
         return ''' ... on DashboardEntityOutline {
@@ -83,15 +128,63 @@ def entity_outline(entity_type):
                   accountId
                   type
                   entityType
+                    tags {
+                        key
+                        values
+                    }
                 } '''
+    if entity_type == INFRA_HOST:
+        return ''' ... on InfrastructureHostEntityOutline {
+                guid
+                name
+                accountId
+                type
+                entityType
+                tags {
+                    key
+                    values
+                }
+            } '''
+    if entity_type == INFRA_INT:
+        return ''' ... on GenericInfrastructureEntityOutline {
+                guid
+                name
+                accountId
+                type
+                entityType
+                tags {
+                    key
+                    values
+                }
+            } '''
+    if entity_type == INFRA_LAMBDA: 
+        return ''' ... on InfrastructureAwsLambdaFunctionEntityOutline {
+                guid
+                name
+                accountId
+                type
+                entityType
+                runtime
+                tags {
+                    key
+                    values
+                }
+            } '''
 
 
-def search_query_payload(entity_type, entity_name):
+def search_query_payload(entity_type, entity_name, acct_id = None):
     gql_search_type = 'APPLICATION'
     if entity_type == SYNTH_MONITOR:
         gql_search_type = 'MONITOR'
     elif entity_type == DASHBOARD:
         gql_search_type = 'DASHBOARD'
+    elif entity_type == SYNTH_SECURE_CRED:
+        gql_search_type = 'SECURE_CRED'
+    elif entity_type == INFRA_HOST:
+        gql_search_type = 'HOST'
+    elif entity_type == INFRA_LAMBDA:
+        gql_search_type = 'AWSLAMBDAFUNCTION'
+    # 
     entity_search_query = '''query($matchingCondition: String!) { 
                                     actor { 
                                         entitySearch(query: $matchingCondition)  { 
@@ -104,7 +197,15 @@ def search_query_payload(entity_type, entity_name):
                                     } 
                                 }
                                 '''
-    variables = {'matchingCondition': "name = '" + entity_name + "' AND type = '"+gql_search_type+"'"}
+    if entity_type == INFRA_INT:
+        # entityType cannot be used in a search
+        # Integrations use a large number of types, making maintaining separate queries unmaintainable
+        matching_condition = "name = '" + entity_name + "' AND domain = 'INFRA' AND type != 'HOST' AND type != 'AWSLAMBDAFUNCTION'"
+    else:
+        matching_condition = "name = '" + entity_name + "' AND type = '"+gql_search_type+"'"
+    if acct_id != None:
+        matching_condition += " AND tags.accountId = '" + str(acct_id) + "'"
+    variables = {'matchingCondition': matching_condition}
     payload = {'query': entity_search_query, 'variables': variables}
     return payload
 
@@ -128,32 +229,6 @@ def matched_mobile_app(entity, tgt_account_id, src_entity):
     return matched
 
 
-def matched_apm_app_name(entity, tgt_account_id, name):
-    matched = False
-    if entity['entityType'] == 'APM_APPLICATION_ENTITY' and \
-       str(entity['accountId']) == str(tgt_account_id) and \
-       entity['name'] == name:
-        matched = True
-    return matched
-
-
-def matched_mobile_app_name(entity, tgt_account_id, name):
-    matched = False
-    if entity['entityType'] == 'MOBILE_APPLICATION_ENTITY' and \
-       str(entity['accountId']) == str(tgt_account_id) and \
-       entity['name'] == name:
-        matched = True
-    return matched
-
-
-def matched_synth_monitor_name(entity, tgt_account_id, name):
-    matched = False
-    if entity['entityType'] == 'SYNTHETIC_MONITOR_ENTITY' and \
-       str(entity['accountId']) == str(tgt_account_id) and \
-       entity['name'] == name:
-        matched = True
-    return matched
-
 
 def matched_browser_app(entity, tgt_account_id, src_entity):
     matched = False
@@ -164,20 +239,13 @@ def matched_browser_app(entity, tgt_account_id, src_entity):
     return matched
 
 
-def matched_browser_app_name(entity, tgt_account_id, name):
-    matched = False
-    if entity['entityType'] == 'BROWSER_APPLICATION_ENTITY' and \
-       str(entity['accountId']) == str(tgt_account_id) and \
-       entity['name'] == name:
-        matched = True
-    return matched
 
-def matched_dashboard_name(entity, tgt_account_id, name):
+def matched_entity_name(entity_type, entity, tgt_account_id, name):
     matched = False
-    if entity['entityType'] == 'DASHBOARD_ENTITY' and \
-       str(entity['accountId']) == str(tgt_account_id) and \
-       entity['name'] == name:
-        matched = True
+    if entity['entityType'] == ent_type_lookup[entity_type] and \
+        str(entity['accountId']) == str(tgt_account_id) and \
+        entity['name'] == name:
+            matched = True
     return matched
 
 def get_matching_kt(tgt_api_key, kt_name):
@@ -201,7 +269,7 @@ def extract_entities(gql_rsp_json):
 
 def gql_get_matching_entity(api_key, entity_type, src_entity, tgt_account_id):
     logger.info('looking for matching entity ' + src_entity['name'] + ' in account ' + tgt_account_id)
-    payload = search_query_payload(entity_type, src_entity['name'])
+    payload = search_query_payload(entity_type, src_entity['name'], tgt_account_id)
     result = {'entityFound': False}
     response = requests.post(GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
     result['status'] = response.status_code
@@ -240,7 +308,7 @@ def set_matched_entity(entities, entity_type, result, src_entity, tgt_account_id
 
 def gql_get_matching_entity_by_name(api_key, entity_type, name, tgt_acct_id):
     logger.info('Searching matching entity for type:' + entity_type + ', name:' + name + ', acct:' + str(tgt_acct_id))
-    payload = search_query_payload(entity_type, name)
+    payload = search_query_payload(entity_type, name, tgt_acct_id)
     result = {'entityFound': False}
     response = requests.post(GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
     result['status'] = response.status_code
@@ -263,19 +331,7 @@ def gql_get_matching_entity_by_name(api_key, entity_type, name, tgt_acct_id):
 
 def set_matched_entity_by_name(acct_id, entity_type, name, result):
     for entity in result['entities']:
-        if entity_type == APM_APP and matched_apm_app_name(entity, acct_id, name):
-            result['entityFound'] = True
-            result['entity'] = entity
-        if entity_type == BROWSER_APP and matched_browser_app_name(entity, acct_id, name):
-            result['entityFound'] = True
-            result['entity'] = entity
-        if entity_type == MOBILE_APP and matched_mobile_app_name(entity, acct_id, name):
-            result['entityFound'] = True
-            result['entity'] = entity
-        if entity_type == SYNTH_MONITOR and matched_synth_monitor_name(entity, acct_id, name):
-            result['entityFound'] = True
-            result['entity'] = entity
-        if entity_type == DASHBOARD and matched_dashboard_name(entity, acct_id, name):
+        if matched_entity_name(entity_type, entity, acct_id, name):
             result['entityFound'] = True
             result['entity'] = entity
             break
@@ -490,18 +546,21 @@ def put_apm_settings(api_key, app_id, app_settings):
         result['error'] = response.text
     return result
 
-
-# input : key_values - dict with key and array of values as value
-def tags_arr_from(arr_label_keys):
+# Input: tags from source and target entities
+# Output: array of tags that need to be applied on target entity
+def tags_diff(src_tags, tgt_tags):
     tags_arr = []
-    for label_key in arr_label_keys:
-        label_parts = label_key.split(':')
-        tag_key_values = {'key': label_parts[0], 'values': [label_parts[1]]}
-        tags_arr.append(tag_key_values)
+    for src_tag in src_tags:
+        match_found = False
+        for tgt_tag in tgt_tags:
+            if src_tag['key'] == tgt_tag['key']:
+                match_found = True
+                continue
+        if match_found == False:
+            tags_arr.append(src_tag)
     return tags_arr
 
-
-def mutate_tags_payload(entity_guid, arr_label_keys, mutate_action):
+def mutate_tags_payload(entity_guid, arr_tags, mutate_action):
     apply_tags_query = '''mutation($entityGuid: EntityGuid!, $tags: [TaggingTagInput!]!) 
                             {''' + mutate_action + '''(guid: $entityGuid, tags: $tags) {
                                         errors { 
@@ -510,22 +569,21 @@ def mutate_tags_payload(entity_guid, arr_label_keys, mutate_action):
                                         } 
                                     }
                           }'''
-    arr_tags = tags_arr_from(arr_label_keys)
     variables = {'entityGuid': entity_guid, 'tags': arr_tags}
     payload = {'query': apply_tags_query, 'variables': variables}
     return payload
 
 
-def apply_tags_payload(entity_guid, arr_label_keys):
-    return mutate_tags_payload(entity_guid, arr_label_keys, 'taggingAddTagsToEntity')
+def apply_tags_payload(entity_guid, arr_tags):
+    return mutate_tags_payload(entity_guid, arr_tags, 'taggingAddTagsToEntity')
 
 
-def replace_tags_payload(entity_guid, arr_label_keys):
-    return mutate_tags_payload(entity_guid, arr_label_keys, 'taggingReplaceTagsOnEntity')
+def replace_tags_payload(entity_guid, arr_tags):
+    return mutate_tags_payload(entity_guid, arr_tags, 'taggingReplaceTagsOnEntity')
 
 
-def gql_mutate_add_tags(per_api_key, entity_guid, arr_label_keys):
-    payload = apply_tags_payload(entity_guid, arr_label_keys)
+def gql_mutate_add_tags(per_api_key, entity_guid, arr_tags):
+    payload = apply_tags_payload(entity_guid, arr_tags)
     result = {}
     response = requests.post(GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
     result['status'] = response.status_code
@@ -540,8 +598,8 @@ def gql_mutate_add_tags(per_api_key, entity_guid, arr_label_keys):
     return result
 
 
-def gql_mutate_replace_tags(per_api_key, entity_guid, arr_label_keys):
-    payload = replace_tags_payload(entity_guid, arr_label_keys)
+def gql_mutate_replace_tags(per_api_key, entity_guid, tags):
+    payload = replace_tags_payload(entity_guid, tags)
     result = {}
     response = requests.post(GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
     result['status'] = response.status_code

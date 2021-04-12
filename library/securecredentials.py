@@ -76,8 +76,10 @@ def create(api_key, scripted_monitors):
 def get_unique_credentials(scripted_monitors):
     secure_credentials_set = set()
     for scripted_monitor in scripted_monitors:
-        if scripted_monitor[CHECK_COUNT] > 0 and len(scripted_monitor[SEC_CREDENTIALS]) > 0:
-            secure_credentials_set.update(set(scripted_monitor[SEC_CREDENTIALS]))
+        if CHECK_COUNT in scripted_monitor:
+            if SEC_CREDENTIALS in scripted_monitor:
+                if scripted_monitor[CHECK_COUNT] > 0 and len(scripted_monitor[SEC_CREDENTIALS]) > 0:
+                    secure_credentials_set.update(set(scripted_monitor[SEC_CREDENTIALS]))
     return secure_credentials_set
 
 

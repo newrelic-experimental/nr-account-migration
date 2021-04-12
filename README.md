@@ -13,7 +13,6 @@ Synthetics
 - [x] Synthetic Monitors (Simple, Browser, Scripted Browser, API Test)
 - [x] Synthetic Monitor Scripts (For Scripted Browser, API Test) 
 - [x] Monitor Secure Credentials(param names only with dummy values for Scripted Browser and API Test)
-- [x] Monitor Labels
 
 Alert Policies
 
@@ -31,14 +30,20 @@ Alert Conditions as below. Target entities replaced wherever applicable and foun
 - [x] External Service Conditions 
 - [x] Infrastructure Conditions (migrated as is)
 
+Entity tags for the following entity types.
+- [x] APM applications
+- [x] Browser applications
+- [x] Infrastructure hosts
+- [x] Infrastructure integrations
+- [x] Lambda functions
+- [x] Mobile applications
+- [x] Synthetic monitors
+- [x] Synthetic secure credentials
 
-- [x] Synthetic Labels (migrated as Tags)
-
-
-- [x] Dashboards
+Dashboards
+- [x] Dashboards, including multi page dashboards
 
 APM Settings
-- [x] APM Labels
 - [x] Apdex Configuration
 
 ## Installation
@@ -60,13 +65,14 @@ The details for each script is provided in the next Usage section.
 
 | No. | Use Case                   |             Scripts | 
 | --- | -------------------------- | ------------------- | 
-| 1.  | Migrate Monitors           | fetchmonitors.py :arrow_right: fetchlabels.py :arrow_right: migratemonitors.py | 
+| 1.  | Migrate Monitors           | fetchmonitors.py :arrow_right: migratemonitors.py :arrow_right: migratetags.py | 
 | 2.  | Migrate Alert policies     | fetchchannels.py(optional) :arrow_right: migratepolicies.py | 
 | 3.  | Migrate Alert conditions   | migratepolicies.py :arrow_right: migrateconditions.py | 
-| 4.  | Migrate APM Configurations | migrate_apm.py |
-| 5.  | Migrate Dashboards | migrate_dashboards.py |
+| 4.  | Migrate APM Configurations | migrate_apm.py :arrow_right: migratetags.py |
+| 5.  | Migrate Dashboards | migrate_dashboards.py :arrow_right: migratetags.py |
 | 6.  | Update Monitors | updatemonitors.py | 
 | 7.  | Delete Monitors | deletemonitors.py | 
+| 8.  | Migrate Tags | migratetags.py
 
 
 The following entities and configurations can be migrated:
@@ -78,7 +84,6 @@ The following entities and configurations can be migrated:
 - [x] Synthetic Monitors (Simple, Browser, Scripted Browser, API Test) 
 - [x] Synthetic Monitor Scripts (For Scripted Browser, API Test) 
 - [x] Monitor Secure Credentials(param names only with dummy values for Scripted Browser and API Test) 
-- [x] Monitor Labels 
 
 | Config Type | Alert Policies                   |
 | ----------- | ------------------------- | 
@@ -108,7 +113,6 @@ Other Entities
 
 APM Configuration
 
-- [x] APM Labels
 - [x] Apdex Configuration
 
 ## Usage
@@ -133,24 +137,7 @@ toFile           | should only be a file name e.g. soure-monitors.csv. It will a
 **Windows Only:** Unzip scripts in as short a path as possible like c:/ in case there are really long monitor names resulting in storage paths greater than 260 characters. If needed the script attempts to handle such long names by mapping the name to a 32 char guid. The mapping if used is stored in windows_names.json and used by migratemonitors.py.
 
 
-####  2) python3 fetchlabels.py
-Recommended to migrate synthetic monitor and APM application labels. 
-
-`usage: fetchlabels.py [-h] --sourceAccount SOURCEACCOUNT [--sourceApiKey SOURCEAPIKEY]`
-
-Fetches all labels and stores them indexed by monitor_id and app_id 
-
-**Output:**
-
-db/sourceAccount/monitor_labels/monitor_labels.json
-
-db/sourceAccount/monitor_labels/monitor_labels.csv
-
-db/sourceAccount/monitor_labels/apm_labels.json
-
-**Note:** If present the monitor_labels file is used to apply labels when monitors are migrated from sourceAccount to another targetAccount.
-
-###  3) python3 fetchchannels.py (optional if you want to use --useLocal option during migratepolicies)
+####  3) python3 fetchchannels.py (optional if you want to use --useLocal option during migratepolicies)
 
 `usage: fetchalerts.py [-h] --sourceAccount SOURCEACCOUNT [--sourceApiKey SOURCEAPIKEY]`
 
@@ -171,15 +158,12 @@ sourceAccount | Account to fetch monitors from
 sourceApiKey  | This should be a User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 targetAccount | Account to migrate monitors to
 targetApiKey  | This should be a User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
-personalApiKey | Personal API Key used for GraphQL API Client calls (required to apply tags)
 timeStamp     | must match the timeStamp generated in fetchmonitors , used when useLocal flag is passed
 useLocal      | By default monitors are fetched from sourceAccount. A pre-fetched copy can be used by passing this flag.
 
 **useLocal:** The monitors will be picked up from db/sourceAccount/monitors/timeStamp
 
-**Labels:** Any labels will be picked up from db/sourceAccount/monitor_labels if pre-fetched using fetchlabels
-
-**Note:** Synthetic Labels are migrated as tags
+**Note:** Labels have been deprecated and replaced by tags. Please use migratetags.py to migrate tags between entities. **The migratemonitors.py script will no longer migrate labels** 
 
 **Status:**
 
@@ -187,7 +171,7 @@ useLocal      | By default monitors are fetched from sourceAccount. A pre-fetche
 
 Comma separated status for each migrated monitor as below.
 
-[NAME, STATUS, SCRIPT_STATUS, SCRIPT_MESSAGE, CHECK_COUNT, SEC_CREDENTIALS, CONDITION_STATUS, CONDITION_RESULT, LOCATION, NEW_MON_ID, ERROR, LABELS]
+[NAME, STATUS, SCRIPT_STATUS, SCRIPT_MESSAGE, CHECK_COUNT, SEC_CREDENTIALS, CONDITION_STATUS, CONDITION_RESULT, LOCATION, NEW_MON_ID, ERROR]
 
 **Note:** CHECK_COUNT and SEC_CREDENTIALS are only applicable for scripted monitors
 
@@ -257,16 +241,14 @@ If found the matching target entities are set as entities in the target conditio
 
 **Status:** output/sourceAccount_fromFile_targetAccount_conditions.csv
 
-####  7) python3 migrate_apm.py (Migrate labels and settings for APM apps)
+####  7) python3 migrate_apm.py (Migrate settings for APM apps)
 
-Migrate APM Apdex configuration settings and/or labels.
-
-Pre-requisite step for migrating labels : fetchlabels.py
+Migrate APM Apdex configuration settings. **This no longer migrates labels.** Please use migratetags.py instead for tag migrations.
 
 usage: migrate_apm.py [-h] --fromFile FROMFILE --sourceAccount SOURCEACCOUNT
                         --personalApiKey PERSONALAPIKEY --sourceApiKey
                         SOURCEAPIKEY --targetAccount TARGETACCOUNT
-                        --targetApiKey TARGETAPIKEY  [--settings] [--labels]
+                        --targetApiKey TARGETAPIKEY  [--settings]
 
 ##### Note: Ensure target apps are running or were running recently so that the target ids can be picked
 
@@ -278,8 +260,34 @@ usage: migrate_dashboards.py [-h] --fromFile FROMFILE --sourceAccount
                              --targetAccount TARGETACCOUNT
                              [--targetApiKey TARGETAPIKEY]
 
+####  9) python3 migratetags.py
 
-####  9) python3 updatemonitors.py **Note:** Must use fetchmonitors before using updatemonitors
+usage: migratetags.py [-h] --fromFile FROMFILE --sourceAccount
+                            SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
+                            --targetAccount TARGETACCOUNT --targetApiKey TARGETAPIKEY
+                            [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics]
+
+Migrate entity tags between entities with matching names and entity types. 
+
+Parameter      | Note
+-------------- | --------------------------------------------------
+fromFile       | must contain alert policy names one per line
+sourceAccount  | Account to search for a matching source entity
+sourceApiKey   | User API Key for sourceAccount 
+targetAccount  | Account to search for a matching target entity
+targetApiKey   | User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Alerts
+apm            | Pass this flag to migrate APM entity tags
+browser        | Pass this flag to migrate Browser entity tags
+dashboards     | Pass this flag to migrate Dashboard entity tags
+infrahost      | Pass this flag to migrate Infrastructure host entity tags
+infraint       | Pass this flag to migrate Infrastructure integration entity tags (including cloud integration entities)
+lambda         | Pass this flag to migrate Lambda entity tags
+mobile         | Pass this flag to migrate Mobile entity tags
+securecreds    | Pass this flag to migrate Synthetic secure credential entity tags (tags only, not secure credentials themselves)
+synthetics     | Pass this flag to migrate Synthetic monitor entity tags
+
+
+####  10) python3 updatemonitors.py **Note:** Must use fetchmonitors before using updatemonitors
 
 Potential use is for renaming/disabling migrated monitors in source account.
 
@@ -305,13 +313,13 @@ output/targetAccount_fromFile_updated_monitors.csv
 
 **Status keys:** [STATUS, UPDATED_NAME, UPDATED_STATUS, UPDATED_JSON, ERROR]
 
-####  10) python3 deletemonitors.py
+####  11) python3 deletemonitors.py
 
 `usage: deletemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT --timeStamp TIMESTAMP`
 
 Will delete monitors listed one per line in --fromFile and stored in db/targetaccount/monitors/timeStamp
 
-####  11) (optional Testing purpose only) python3 deleteallmonitors.py
+####  12) (optional Testing purpose only) python3 deleteallmonitors.py
 
 #### Warning: All monitors in target account will be deleted
 
@@ -321,13 +329,13 @@ deleteallmonitors fetches all the monitors. Backs them up in db/accountId/monito
 
 ##### Note: In case this script is used in error use migratemonitors to restore the backed up monitors
 
-####  12) (optional) python3 store_policies.py
+####  13) (optional) python3 store_policies.py
 
 usage: store_policies.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
 
 Saves all alert polices in db/<sourceAccount>/alert_policies/alert_policies.json
 
-####  13) (optional) python3 store_violations.py
+####  14) (optional) python3 store_violations.py
 
 usage: store_violations.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --startDate STARTDATE --endDate ENDDATE [--onlyOpen]
 

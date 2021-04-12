@@ -5,7 +5,7 @@ import time
 import library.localstore as store
 import library.migrationlogger as migrationlogger
 from library.clients.monitorsclient import get_monitor, post_monitor_definition, populate_script, \
-    put_script,  apply_tags
+    put_script
 import library.monitortypes as monitortypes
 import library.securecredentials as securecredentials
 import library.status.monitorstatus as mskeys
@@ -37,8 +37,6 @@ def setup_params():
                                                                         set environment variable ENV_SOURCE_API_KEY')
     parser.add_argument('--targetApiKey', nargs=1, type=str, required=True, help='Target API Key, \
                                                                         or set environment variable ENV_TARGET_API_KEY')
-    parser.add_argument('--personalApiKey', nargs=1, type=str, required=True, help='Personal API Key for GraphQL client \
-                                                                        alternately environment variable ENV_PERSONAL_API_KEY')
     parser.add_argument('--timeStamp', nargs=1, type=str, required=True, help='timeStamp to migrate')
 
     parser.add_argument('--useLocal', dest='useLocal', required=False, action='store_true',
@@ -46,7 +44,7 @@ def setup_params():
 
 
 # prints args and also sets the fetch_latest flag
-def print_args(target_api_key, per_api_key):
+def print_args(target_api_key):
     global fetch_latest
     logger.info("Using fromFile : " + args.fromFile[0])
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
@@ -62,7 +60,6 @@ def print_args(target_api_key, per_api_key):
         logger.info("Default fetch_latest :" + str(fetch_latest))
     logger.info("Using targetAccount : " + str(args.targetAccount[0]))
     logger.info("Using targetApiKey : " + len(target_api_key[:-4])*"*"+target_api_key[-4:])
-    logger.info("Using personalApiKey : " + len(per_api_key[:-4]) * "*" + per_api_key[-4:])
     logger.info("Using timeStamp : " + args.timeStamp[0])
 
 
@@ -78,17 +75,8 @@ def ensure_target_api_key():
     return target_api_key
 
 
-def get_labels(source_monitor_id, all_monitor_labels):
-    monitor_labels = []
-    if len(all_monitor_labels) > 0 and source_monitor_id in all_monitor_labels:
-        monitor_labels = all_monitor_labels[source_monitor_id]
-    return monitor_labels
-
-
-def migrate(all_monitors_json, src_account_id, src_api_key, tgt_acct_id, tgt_api_key, per_api_key):
+def migrate(all_monitors_json, src_account_id, src_api_key, tgt_acct_id, tgt_api_key):
     monitor_status = {}
-    all_monitor_labels = store.load_monitor_labels(src_account_id)
-    logger.info("Loaded labels " + str(len(all_monitor_labels)))
     scripted_monitors = []
     for monitor_json in all_monitors_json:
         logger.debug(monitor_json)
@@ -108,22 +96,20 @@ def migrate(all_monitors_json, src_account_id, src_api_key, tgt_acct_id, tgt_api
                 populate_script(src_api_key, monitor_json, source_monitor_id)
             put_script(tgt_api_key, monitor_json, monitor_name, monitor_status)
             logger.info(monitor_status)
-            monitor_status[monitor_name][mskeys.SEC_CREDENTIALS] = monitor_json[mskeys.SEC_CREDENTIALS]
-            monitor_status[monitor_name][mskeys.CHECK_COUNT] = monitor_json[mskeys.CHECK_COUNT]
-        # need a delay to wait for the guid to be indexed
-        time.sleep(0.5)
-        monitor_labels = get_labels(source_monitor_id, all_monitor_labels)
-        apply_tags(tgt_acct_id, per_api_key, monitor_labels, monitor_name, monitor_status)
+            if mskeys.SEC_CREDENTIALS in monitor_json:
+                monitor_status[monitor_name][mskeys.SEC_CREDENTIALS] = monitor_json[mskeys.SEC_CREDENTIALS]
+            if mskeys.CHECK_COUNT in monitor_json:
+                monitor_status[monitor_name][mskeys.CHECK_COUNT] = monitor_json[mskeys.CHECK_COUNT]
         logger.debug(monitor_status[monitor_name])
     securecredentials.create(tgt_api_key, scripted_monitors)
     return monitor_status
 
 
-def migrate_monitors(from_file, src_acct, src_api_key, time_stamp, tgt_acct_id, target_api_key, per_api_key):
+def migrate_monitors(from_file, src_acct, src_api_key, time_stamp, tgt_acct_id, target_api_key):
     monitor_names = store.load_names(from_file)
     logger.debug(monitor_names)
     all_monitors_json = store.load_monitors(src_acct, time_stamp, monitor_names)
-    monitor_status = migrate(all_monitors_json, src_acct, src_api_key, tgt_acct_id, target_api_key, per_api_key)
+    monitor_status = migrate(all_monitors_json, src_acct, src_api_key, tgt_acct_id, target_api_key)
     logger.debug(monitor_status)
     file_name = utils.file_name_from(from_file)
     status_csv = src_acct + "_" + file_name + "_" + tgt_acct_id + ".csv"
@@ -137,12 +123,9 @@ def main():
     target_api_key = ensure_target_api_key()
     if not target_api_key:
         utils.error_and_exit('target_api_key', 'ENV_TARGET_API_KEY')
-    personal_api_key = utils.ensure_personal_api_key(args)
-    if not personal_api_key:
-        utils.error_and_exit('personal_api_key', 'ENV_PERSONAL_API_KEY')
-    print_args(target_api_key, personal_api_key)
+    print_args(target_api_key)
     migrate_monitors(args.fromFile[0], args.sourceAccount[0], args.sourceApiKey[0], args.timeStamp[0],
-                     args.targetAccount[0], target_api_key, personal_api_key)
+                     args.targetAccount[0], target_api_key)
 
 
 if __name__ == '__main__':

@@ -24,7 +24,7 @@ def get_entity_type(extsvc_condition):
         return ec.MOBILE_APP
 
 
-def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy):
+def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
     log.info('loading source ext svc conditions')
     extsvc_conditions = ac.get_extsvc_conditions(src_api_key, src_policy['id'])[ac.EXTSVC_CONDITIONS]
     if len(extsvc_conditions) <= 0:
@@ -63,7 +63,7 @@ def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
         if len(tgt_entities) > 0:
             update_condition_status(all_alert_status, cond_row, entity_ids, tgt_acct_id,
                                     tgt_entities)
-            tgt_condition = create_tgt_extsvc_condition(extsvc_condition, tgt_entities)
+            tgt_condition = create_tgt_extsvc_condition(extsvc_condition, tgt_entities, match_source_status)
             result = ac.create_extsvc_condition(tgt_api_key, tgt_policy, tgt_condition)
             all_alert_status[cond_row][cs.STATUS] = result['status']
             if cs.ERROR in result.keys():
@@ -98,9 +98,10 @@ def update_condition_status(all_alert_status, condition_row, entity_ids, tgt_acc
     all_alert_status[condition_row][cs.TGT_ENTITY] = tgt_entities
 
 
-def create_tgt_extsvc_condition(extsvc_condition, tgt_entities):
+def create_tgt_extsvc_condition(extsvc_condition, tgt_entities, match_source_status):
     tgt_condition = extsvc_condition.copy()
     tgt_condition.pop('id')
-    tgt_condition['enabled'] = False
+    if match_source_status == False:
+        tgt_condition['enabled'] = False
     tgt_condition[ac.ENTITIES] = tgt_entities
     return tgt_condition

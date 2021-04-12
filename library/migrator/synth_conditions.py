@@ -8,7 +8,7 @@ import library.clients.entityclient as ec
 logger = logger.get_logger(os.path.basename(__file__))
 
 
-def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy):
+def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
     logger.info('Loading source synthetic conditions ')
     synth_conditions = ac.get_synthetic_conditions(src_api_key, src_policy['id'])[ac.SYNTH_CONDITIONS]
     logger.info('Found synthetic conditions ' + str(len(synth_conditions)))
@@ -31,7 +31,7 @@ def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
             tgt_key = synth_condition['name'] + tgt_monitor['monitorId']
             if tgt_key not in tgt_synth_conds:
                 logger.info('Creating target synthetic condition ' + synth_condition['name'])
-                tgt_condition = create_tgt_synth_condition(synth_condition, tgt_monitor['monitorId'])
+                tgt_condition = create_tgt_synth_condition(synth_condition, tgt_monitor['monitorId'], match_source_status)
                 result = ac.create_synthetic_condition(tgt_api_key, tgt_policy, tgt_condition, tgt_monitor['name'])
                 all_alert_status[condition_row][cs.STATUS] = result['status']
                 if 'error' in result.keys():
@@ -46,9 +46,10 @@ def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
             logger.warn('Condition skipped ' + str(synth_condition))
 
 
-def create_tgt_synth_condition(synth_condition, tgt_monitor_id):
+def create_tgt_synth_condition(synth_condition, tgt_monitor_id, match_source_status):
     tgt_condition = synth_condition.copy()
     tgt_condition.pop('id')
-    tgt_condition['enabled'] = False
+    if match_source_status == False:
+        tgt_condition['enabled'] = False
     tgt_condition[ac.MONITOR_ID] = tgt_monitor_id
     return tgt_condition

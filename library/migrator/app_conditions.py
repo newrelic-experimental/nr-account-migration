@@ -8,7 +8,7 @@ import library.utils as utils
 logger = logger.get_logger(os.path.basename(__file__))
 
 
-def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy):
+def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
     logger.info('loading source app conditions')
     all_app_conditions = ac.get_app_conditions(src_api_key, src_policy['id'])[ac.CONDITIONS]
     logger.info("Found app alert conditions " + str(len(all_app_conditions)))
@@ -51,7 +51,7 @@ def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
         if len(tgt_entities) > 0:
             update_condition_status(all_alert_status, condition_row, entity_ids, tgt_acct_id,
                                     tgt_entities)
-            tgt_condition = create_tgt_app_condition(app_condition, tgt_entities)
+            tgt_condition = create_tgt_app_condition(app_condition, tgt_entities, match_source_status)
             result = ac.create_app_condition(tgt_api_key, tgt_policy, tgt_condition)
             all_alert_status[condition_row][cs.STATUS] = result['status']
             if cs.ERROR in result.keys():
@@ -86,9 +86,10 @@ def update_condition_status(all_alert_status, condition_row, entity_ids, tgt_acc
     all_alert_status[condition_row][cs.TGT_ENTITY] = tgt_entities
 
 
-def create_tgt_app_condition(app_condition, tgt_entities):
+def create_tgt_app_condition(app_condition, tgt_entities, match_source_status):
     tgt_condition = app_condition.copy()
     tgt_condition.pop('id')
-    tgt_condition['enabled'] = False
+    if match_source_status == False:
+        tgt_condition['enabled'] = False
     tgt_condition[ac.ENTITIES] = tgt_entities
     return tgt_condition

@@ -32,6 +32,8 @@ def setup_params():
     parser.add_argument('--targetAccount', nargs=1, type=str,  required=True, help='Target accountId')
     parser.add_argument('--targetApiKey', nargs=1, type=str, required=False, help='Target API Key, \
                                                                         or set environment variable ENV_TARGET_API_KEY')
+    parser.add_argument('--matchSourceState', dest='matchSourceState', required=False, action='store_true',
+                    help='Pass --matchSourceState to match condition enable/disable state from source account instead of disabling in target account')
     parser.add_argument('--synthetics', dest='synthetics', required=False, action='store_true',
                     help='Pass --synthetics to migrate synthetics conditions')
     parser.add_argument('--app_conditions', dest='app_conditions', required=False, action='store_true',
@@ -51,6 +53,8 @@ def print_args(per_api_key, src_api_key, tgt_api_key):
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*"+src_api_key[-4:])
     logger.info("Using targetAccount : " + args.targetAccount[0])
     logger.info("Using targetApiKey : " + len(tgt_api_key[:-4]) * "*" + tgt_api_key[-4:])
+    if args.matchSourceState:
+        logger.info("Matching condition enable/disable state in target account instead of disabling all new conditions")
     if args.synthetics:
         logger.info("Migrating conditions of type " + SYNTHETICS)
     if args.app_conditions:
@@ -63,7 +67,7 @@ def print_args(per_api_key, src_api_key, tgt_api_key):
         logger.info("Migrating conditions of type " + INFRA_CONDITIONS)
 
 
-def migrate_conditions(from_file, per_api_key, src_account_id, src_api_key, tgt_account_id, tgt_api_key, cond_types):
+def migrate_conditions(from_file, per_api_key, src_account_id, src_api_key, tgt_account_id, tgt_api_key, cond_types, match_source_status):
     all_alert_status = {}
     policy_names = store.load_names(from_file)
     for policy_name in policy_names:
@@ -83,21 +87,21 @@ def migrate_conditions(from_file, per_api_key, src_account_id, src_api_key, tgt_
         tgt_policy = tgt_result['policy']
         if SYNTHETICS in cond_types:
             sc_migrator.migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
-                                tgt_account_id, tgt_api_key, tgt_policy)
+                                tgt_account_id, tgt_api_key, tgt_policy, match_source_status)
             lfc_migrator.migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
-                                 tgt_account_id, tgt_api_key, tgt_policy)
+                                 tgt_account_id, tgt_api_key, tgt_policy, match_source_status)
         if APP_CONDITIONS in cond_types:
             ac_migrator.migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_account_id,
-                                tgt_api_key, tgt_policy)
+                                tgt_api_key, tgt_policy, match_source_status)
         if NRQL_CONDITIONS in cond_types:
             nrql_migrator.migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_account_id,
-                                tgt_api_key, tgt_policy)
+                                tgt_api_key, tgt_policy, match_source_status)
         if EXT_SVC_CONDITIONS in cond_types:
             extsvc_migrator.migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_account_id,
-                                  tgt_api_key, tgt_policy)
+                                  tgt_api_key, tgt_policy, match_source_status)
         if INFRA_CONDITIONS in cond_types:
             infra_migrator.migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_account_id, 
-                                tgt_api_key, tgt_policy)
+                                tgt_api_key, tgt_policy, match_source_status)
     status_file = src_account_id + '_' + utils.file_name_from(from_file) + '_' + tgt_account_id + '_conditions.csv'
     store.save_status_csv(status_file, all_alert_status, cs)
 
@@ -138,5 +142,5 @@ if __name__ == '__main__':
     print_args(personal_api_key, source_api_key, target_api_key)
     logger.info('Starting Alert Conditions Migration')
     migrate_conditions(args.fromFile[0], personal_api_key, args.sourceAccount[0], source_api_key, args.targetAccount[0],
-                       target_api_key, cond_types)
+                       target_api_key, cond_types, args.matchSourceState)
     logger.info('Done Alert Conditions Migration')

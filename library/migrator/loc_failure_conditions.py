@@ -8,7 +8,7 @@ import library.clients.entityclient as ec
 logger = logger.get_logger(os.path.basename(__file__))
 
 
-def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy):
+def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
     logger.info('Loading source location failure conditions ')
     result = ac.get_location_failure_conditions(src_api_key, src_policy['id'])
     loc_conds = []
@@ -44,16 +44,17 @@ def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
                     all_alert_status[condition_row][cs.COND_EXISTED_TARGET] = tgt_key
         if len(tgt_entities) > 0:
             logger.info('Creating target synthetic condition ' + loc_condition['name'])
-            tgt_condition = create_tgt_loc_condition(loc_condition, tgt_entities)
+            tgt_condition = create_tgt_loc_condition(loc_condition, tgt_entities, match_source_status)
             result = ac.create_loc_failure_condition(tgt_api_key, tgt_policy, tgt_condition)
             all_alert_status[condition_row][cs.STATUS] = result['status']
             if 'error' in result.keys():
                 all_alert_status[condition_row][cs.ERROR] = result['error']
 
 
-def create_tgt_loc_condition(loc_condition, tgt_entities):
+def create_tgt_loc_condition(loc_condition, tgt_entities, match_source_status):
     tgt_condition = loc_condition.copy()
     tgt_condition.pop('id')
-    tgt_condition['enabled'] = False
+    if match_source_status == False:
+        tgt_condition['enabled'] = False
     tgt_condition[ac.ENTITIES] = tgt_entities
     return tgt_condition

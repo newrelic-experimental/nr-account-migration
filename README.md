@@ -222,7 +222,7 @@ If alert policy is present then only notification channels are migrated if not p
 
 Any target APM , Browser, Mobile apps and Key transactions must be migrated manually.
 
-`usage: migrateconditions.py [-h] --fromFile FROMFILE --personalApiKey PERSONALAPIKEY --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetApiKey TARGETAPIKEY] [--synthetics --app_conditions --nrql_conditions --infra_conditions]`
+`usage: migrateconditions.py [-h] --fromFile FROMFILE --personalApiKey PERSONALAPIKEY --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetApiKey TARGETAPIKEY] [--matchSourceState] [--synthetics --app_conditions --nrql_conditions --infra_conditions]`
 
 Parameter      | Note
 -------------- | --------------------------------------------------
@@ -232,6 +232,7 @@ sourceAccount  | Account to fetch monitors from
 sourceApiKey   | User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Alerts
 targetAccount  | Account to migrate policies to
 targetApiKey   | User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Alerts
+matchSourceState | Match alert condition enabled/disabled state from the source account in the target account. By default, all copied alert conditions are disabled in the target account.
 synthetics     | Pass this flag to migrate synthetic conditions
 app_conditions | Pass this flag to migrate alert conditions for APM, Browser apps, Key Transactions
 nrql_conditions | Migrate nrql conditions in the alert policies

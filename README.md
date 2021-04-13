@@ -153,7 +153,7 @@ During migratepolicies the stored alert_channels can be used by passing --useLoc
 
 Parameter     | Note
 ------------- | --------------------------------------------------------------------------------------------------------
-fromFile      | must contain monitor names one per line
+fromFile      | Must contain monitor names one per line. The fetchentities.py script can be used to help generate this list of monitors.
 sourceAccount | Account to fetch monitors from
 sourceApiKey  | This should be a User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 targetAccount | Account to migrate monitors to
@@ -261,6 +261,8 @@ usage: migrate_dashboards.py [-h] --fromFile FROMFILE --sourceAccount
                              --targetAccount TARGETACCOUNT
                              [--targetApiKey TARGETAPIKEY]
 
+Migrate dashboards between accounts, including modifying queries to point to the new target account. The fetchentities.py script can help create the file to pass with fromFile.
+
 ####  9) python3 migratetags.py
 
 usage: migratetags.py [-h] --fromFile FROMFILE --sourceAccount
@@ -272,7 +274,7 @@ Migrate entity tags between entities with matching names and entity types.
 
 Parameter      | Note
 -------------- | --------------------------------------------------
-fromFile       | must contain alert policy names one per line
+fromFile       | Must contain entity names one per line. The fetchentities.py script can help create this file.
 sourceAccount  | Account to search for a matching source entity
 sourceApiKey   | User API Key for sourceAccount 
 targetAccount  | Account to search for a matching target entity
@@ -296,7 +298,7 @@ Potential use is for renaming/disabling migrated monitors in source account.
 
 Parameter     | Note
 ------------- | -------------------------------------------------------------------------
-fromFile      | specifies the file with relative path, listing the monitors to be updated
+fromFile      | Specifies the file with relative path, listing the monitors to be updated. The fetchentities.py script can help generate this file.
 targetAccount | Account in which monitors need to be updated
 targetApiKey  | This should be a User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 timeStamp     | must match the timeStamp generated in fetchmonitors
@@ -314,13 +316,39 @@ output/targetAccount_fromFile_updated_monitors.csv
 
 **Status keys:** [STATUS, UPDATED_NAME, UPDATED_STATUS, UPDATED_JSON, ERROR]
 
-####  11) python3 deletemonitors.py
+####  11) python3 fetchentities.py
+
+usage: fetchentities.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
+                            --toFile FILENAME [--tagName TAGNAME --tagValue TAGVALUE]
+                            [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics] 
+
+Create a file in the output directory that contains entity names from the source account. This can be filtered by using --tagName and --tagValue. This may be beneficial for other migration scripts in this repo that require a fromFile argument.
+
+Parameter      | Note
+-------------- | --------------------------------------------------
+sourceAccount  | Account to search for matching entities
+sourceApiKey   | User API Key for sourceAccount 
+toFile         | File name to use to store entity names. This file will be created in the output directory.
+tagName        | Tag name to use to filter results
+tagValue       | Tag value to use to filter results
+apm            | Pass this flag to list APM entities
+browser        | Pass this flag to list Browser entities
+dashboards     | Pass this flag to list Dashboard entities
+infrahost      | Pass this flag to list Infrastructure host entities
+infraint       | Pass this flag to list Infrastructure integration entities (including cloud integration entities)
+lambda         | Pass this flag to list Lambda entities
+mobile         | Pass this flag to list Mobile entities
+securecreds    | Pass this flag to list Synthetic secure credential entities
+synthetics     | Pass this flag to list Synthetic monitor entities
+
+
+####  12) python3 deletemonitors.py
 
 `usage: deletemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT --timeStamp TIMESTAMP`
 
-Will delete monitors listed one per line in --fromFile and stored in db/targetaccount/monitors/timeStamp
+Will delete monitors listed one per line in --fromFile and stored in db/targetaccount/monitors/timeStamp. The fetchentities.py script can help generate this file.
 
-####  12) (optional Testing purpose only) python3 deleteallmonitors.py
+####  13) (optional Testing purpose only) python3 deleteallmonitors.py
 
 #### Warning: All monitors in target account will be deleted
 
@@ -330,13 +358,13 @@ deleteallmonitors fetches all the monitors. Backs them up in db/accountId/monito
 
 ##### Note: In case this script is used in error use migratemonitors to restore the backed up monitors
 
-####  13) (optional) python3 store_policies.py
+####  14) (optional) python3 store_policies.py
 
 usage: store_policies.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
 
 Saves all alert polices in db/<sourceAccount>/alert_policies/alert_policies.json
 
-####  14) (optional) python3 store_violations.py
+####  15) (optional) python3 store_violations.py
 
 usage: store_violations.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --startDate STARTDATE --endDate ENDDATE [--onlyOpen]
 

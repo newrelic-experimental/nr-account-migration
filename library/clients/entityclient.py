@@ -336,12 +336,18 @@ def set_matched_entity_by_name(acct_id, entity_type, name, result):
             result['entity'] = entity
             break
 
-def get_entities_payload(entity_type, acct_id = None, nextCursor = None):
+def get_entities_payload(entity_type, acct_id = None, nextCursor = None, tag_name = None, tag_value = None):
     gql_search_type = 'APPLICATION'
     if entity_type == SYNTH_MONITOR:
         gql_search_type = 'MONITOR'
     elif entity_type == DASHBOARD:
         gql_search_type = 'DASHBOARD'
+    elif entity_type == SYNTH_SECURE_CRED:
+        gql_search_type = 'SECURE_CRED'
+    elif entity_type == INFRA_HOST:
+        gql_search_type = 'HOST'
+    elif entity_type == INFRA_LAMBDA:
+        gql_search_type = 'AWSLAMBDAFUNCTION'
 
     entity_search_query = '''query($matchingCondition: String!) { 
                                     actor { 
@@ -357,15 +363,21 @@ def get_entities_payload(entity_type, acct_id = None, nextCursor = None):
                                 }
                                 '''
     matching_condition = "type = '"+gql_search_type+"'"
+    if entity_type == INFRA_INT:
+        # entityType cannot be used in a search
+        # Integrations use a large number of types, making maintaining separate queries unmaintainable
+        matching_condition = "domain = 'INFRA' AND type != 'HOST' AND type != 'AWSLAMBDAFUNCTION'"
     if acct_id != None:
         matching_condition += " AND tags.accountId = '" + str(acct_id) + "'"
+    if tag_name != None:
+        matching_condition += " AND tags." + str(tag_name) + " = '" + str(tag_value) + "'"
     variables = {'matchingCondition': matching_condition}
     payload = {'query': entity_search_query, 'variables': variables}
     return payload
 
-def gql_get_entities_by_type(api_key, entity_type, acct_id = None):
-    logger.info('Searching for entities by type:' + entity_type + ', acct:' + str(acct_id))
-
+def gql_get_entities_by_type(api_key, entity_type, acct_id = None, tag_name = None, tag_value = None):
+    logger.info('Searching for entities by type:' + entity_type + ', acct:' + str(acct_id or 'not provided') + ', tag name: ' + str(tag_name or 'not provided') + ', tag value: ' + str(tag_value or 'not provided'))
+    
     done = False
     nextCursor = None
     count = 0
@@ -374,7 +386,7 @@ def gql_get_entities_by_type(api_key, entity_type, acct_id = None):
     entities = []
 
     while not done:
-        payload = get_entities_payload(entity_type, acct_id, nextCursor)
+        payload = get_entities_payload(entity_type, acct_id, nextCursor, tag_name, tag_value)
 
         response = requests.post(GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
         if response.status_code != 200:
@@ -402,7 +414,8 @@ def gql_get_entities_by_type(api_key, entity_type, acct_id = None):
 
         if 'entities' in entitySearch['results']:
             for entity in entitySearch['results']['entities']:
-                entities.append(entity)
+                if 'name' in entity:
+                    entities.append(entity)
 
         if not nextCursor:
             done = True

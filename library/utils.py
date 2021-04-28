@@ -1,7 +1,9 @@
 import os
 import sys
 import library.migrationlogger as m_logger
+import library.clients.alertsclient as ac
 import library.clients.entityclient as ec
+import library.localstore as store
 import json
 import requests
 
@@ -134,3 +136,19 @@ def get_condition_prefix(entity_type):
         return '-mcon'
     if ec.APM_KT == entity_type:
         return '-ktcon'
+
+
+def load_alert_policy_names(policyNameFile, entityNameFile, account_id, api_key, per_api_key, use_local):
+    names = set()
+    if policyNameFile:
+        policy_names = store.load_names(policyNameFile)
+        names.update(set(policy_names))
+
+    if entityNameFile:
+        entity_names = store.load_names(entityNameFile)
+        if entity_names:
+            policy_names = ac.get_policy_names_by_entities(entity_names, account_id, api_key, per_api_key, use_local)
+            if policy_names:
+                names.update(set(policy_names))
+
+    return list(names)

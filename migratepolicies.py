@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import library.localstore as store
 import library.status.alertstatus as askeys
 import library.migrationlogger as m_logger
@@ -15,7 +16,10 @@ fetch_channels = True
 
 
 def setup_params():
-    parser.add_argument('--fromFile', nargs=1, type=str, required=True, help='Path to file with alert policy names')
+    parser.add_argument('--fromFile', nargs=1, type=str, required=False, help='Path to file with alert policy names')
+    parser.add_argument('--fromFileEntities', nargs=1, type=str, required=False, help='Path to file with entity IDs')
+    parser.add_argument('--personalApiKey', nargs=1, type=str, required=True, help='Personal API Key for GraphQL client \
+                                                                    alternately environment variable ENV_PERSONAL_API_KEY')
     parser.add_argument('--sourceAccount', nargs=1, type=int, required=True, help='Source accountId')
     parser.add_argument('--sourceApiKey', nargs=1, type=str, required=True, help='Source account API Key or \
                                                                         set environment variable ENV_SOURCE_API_KEY')
@@ -27,9 +31,13 @@ def setup_params():
 
 
 # prints args and also sets the fetch_latest flag
-def print_args(src_api_key, tgt_api_key):
+def print_args(per_api_key, src_api_key, tgt_api_key):
     global fetch_channels
-    logger.info("Using fromFile : " + args.fromFile[0])
+    if (args.fromFile):
+        logger.info("Using fromFile : " + args.fromFile[0])
+    if (args.fromFileEntities):
+        logger.info("Using fromFileEntities : " + args.fromFileEntities[0])
+    logger.info("Using personalApiKey : " + len(per_api_key[:-4])*"*"+per_api_key[-4:])
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*"+src_api_key[-4:])
     logger.info("Using targetAccount : " + str(args.targetAccount[0]))
@@ -99,10 +107,9 @@ def update_alert_status(all_alert_status, policy_name, src_channel_type_name):
         all_alert_status[policy_name][askeys.CHANNELS] = src_channel_type_name
 
 
-def migrate_alert_policies(from_file, src_account, src_api_key, tgt_account, tgt_api_key):
+def migrate_alert_policies(policy_names, src_account, src_api_key, tgt_account, tgt_api_key):
     logger.info('Alert migration started.')
     all_alert_status = {}
-    policy_names = store.load_names(from_file)
     if fetch_channels:
         logger.info('Fetching latest channel info and policy assignment. This may take a while.....')
         loaded_src_channels = fetchchannels.get_channels_by_id_policy(src_api_key)
@@ -110,6 +117,10 @@ def migrate_alert_policies(from_file, src_account, src_api_key, tgt_account, tgt
         logger.info('Loading pre-fetched channel and policy assignment information')
         loaded_src_channels = store.load_alert_channels(src_account)
     tgt_channels_by_type_name = get_channels_by_type_name(tgt_api_key)
+
+    logger.info('Migrating the following policies:')
+    logger.info('%s' % policy_names)
+
     for policy_name in policy_names:
         all_alert_status[policy_name] = {}
         result = ac.get_policy(src_api_key, policy_name)
@@ -131,9 +142,8 @@ def migrate_alert_policies(from_file, src_account, src_api_key, tgt_account, tgt
             tgt_policy = result['policy']
         update_notification_channels(tgt_api_key, src_policy, tgt_policy, loaded_src_channels,
                                      tgt_channels_by_type_name, all_alert_status)
-    alert_status_file = str(src_account) + '_' + utils.file_name_from(from_file) + '_' + str(tgt_account) + '.csv'
-    store.save_status_csv(alert_status_file, all_alert_status, askeys)
     logger.info('Alert migration complete.')
+    return all_alert_status
 
 
 def update_create_status(all_alert_status, policy_name, result):
@@ -153,6 +163,42 @@ if __name__ == '__main__':
     target_api_key = utils.ensure_target_api_key(args)
     if not target_api_key:
         utils.error_and_exit('target_api_key', 'ENV_TARGET_API_KEY')
-    print_args(source_api_key, target_api_key)
-    migrate_alert_policies(args.fromFile[0], args.sourceAccount[0], source_api_key,
-                           args.targetAccount[0], target_api_key)
+    personal_api_key = utils.ensure_personal_api_key(args)
+    if not personal_api_key:
+        utils.error_and_exit('personal_api_key', 'ENV_PERSONAL_API_KEY')
+
+    fromFile = args.fromFile[0] if 'fromFile' in args else None
+    fromFileEntities = args.fromFileEntities[0] if 'fromFileEntities' in args else None
+    if not fromFile and not fromFileEntities:
+        logger.error('Error: At least one of fromFile or fromFileEntities must be specified.')
+        sys.exit()
+
+    source_acct_id = args.sourceAccount[0]
+    target_acct_id = args.targetAccount[0]
+
+    print_args(personal_api_key, source_api_key, target_api_key)
+
+    policy_names = utils.load_alert_policy_names(
+        fromFile,
+        fromFileEntities,
+        source_acct_id,
+        source_api_key,
+        personal_api_key,
+        args.useLocal
+    )
+
+    status = migrate_alert_policies(
+        policy_names,
+        source_acct_id,
+        source_api_key,
+        target_acct_id,
+        target_api_key
+    )
+
+    status_file = ac.get_alert_status_file_name(
+        fromFile,
+        fromFileEntities,
+        source_acct_id,
+        target_acct_id
+    )
+    store.save_status_csv(status_file, status, askeys)

@@ -3,6 +3,9 @@ import os
 import json
 import library.migrationlogger as migrationlogger
 import library.utils as utils
+import library.localstore as store
+import re
+import library.clients.entityclient as ec
 
 logger = migrationlogger.get_logger(os.path.basename(__file__))
 
@@ -47,6 +50,9 @@ ALERTS_CHANNEL_URL = 'https://api.newrelic.com/v2/alerts_channels.json'
 DEL_CHANNELS_URL = 'https://api.newrelic.com/v2/alerts_channels/'
 CHANNELS = "channels"
 ALERT_POLICY_CHANNELS_URL = 'https://api.newrelic.com/v2/alerts_policy_channels.json'
+
+ENTITY_CONDITIONS_URL = 'https://api.newrelic.com/v2/alerts_entity_conditions'
+ENTITY_CONDITIONS = 'entity_conditions'
 
 MONITOR_ID = 'monitor_id'
 SOURCE_POLICY_ID = 'source_policy_id'
@@ -131,6 +137,10 @@ def get_infra_conditions(api_key, policy_id):
     params = {'policy_id': policy_id, 'limit': 50, 'offset': 0}
     return utils.get_paginated_entities(api_key, INFRA_CONDITIONS_URL, INFRA_CONDITIONS, params, INFRA_PAGINATION)
 
+def get_entity_conditions(api_key, entity_id, entity_type):
+    url = '%s/%s.json' % (ENTITY_CONDITIONS_URL, str(entity_id))
+    params = {'entity_type': entity_type}
+    return utils.get_paginated_entities(api_key, url, ENTITY_CONDITIONS, params)
 
 def create_channel(api_key, channel):
     target_channel = {'channel': {'name': channel['name'], 'type': channel['type']}}
@@ -339,3 +349,86 @@ def infra_conditions_by_name(api_key, policy_id):
     for infra_condition in infra_conditions:
         conditions_by_name[infra_condition['name']] = infra_condition
     return conditions_by_name
+
+def get_alert_status_file_name(fromFile, fromFileEntities, src_account_id, tgt_account_id):
+    status_file_name = str(src_account_id) + '_'
+    if fromFile:
+        status_file_name += utils.file_name_from(fromFile) + '_'
+    if fromFileEntities:
+        status_file_name += utils.file_name_from(fromFileEntities) + '_'
+    return status_file_name + str(tgt_account_id) + '_conditions.csv'
+
+def get_policy_entity_map(api_key, alert_policies):
+    entities_by_policy = {}
+    policies_by_entity = {}
+
+    for policy in alert_policies:
+        policy_id = policy['id']
+        policy_name = policy['name']
+        apps = []
+
+        logger.info('Loading app entity conditions for policy ID %d...' % policy_id)
+
+        conditions = get_app_conditions(api_key, policy_id)
+        if not 'response_count' in conditions or conditions['response_count'] == 0:
+            logger.info('No app entity conditions found for policy ID %d' % policy_id)
+            entities_by_policy[policy_name] = []
+            continue
+        
+        logger.info('%d app entity conditions found for policy ID %d. Mapping to app entities.' % (conditions['response_count'], policy_id))
+
+        for condition in conditions['conditions']:
+            entities = condition['entities']
+            for entity_id in entities:
+                if not entity_id in apps:
+                    apps.append(entity_id)
+
+                if not entity_id in policies_by_entity:
+                    policies_by_entity[entity_id] = []
+
+                if not policy_name in policies_by_entity[entity_id]:
+                    policies_by_entity[entity_id].append(policy_name)
+
+        entities_by_policy[policy_name] = apps 
+
+    return {
+        'entities_by_policy': entities_by_policy,
+        'policies_by_entity': policies_by_entity
+    }
+
+def get_policy_names_by_entities(entity_names, account_id, api_key, per_api_key, use_local):
+    names = []
+
+    if use_local:
+        alert_policy_entity_map = store.load_alert_policy_entity_map(account_id)
+    else:
+        alert_policies = get_all_alert_policies(api_key)
+        alert_policy_entity_map = get_policy_entity_map(api_key, alert_policies['policies'])
+    
+    policies_by_entity = alert_policy_entity_map['policies_by_entity']
+
+    for entity_name in entity_names:
+        entity_id = None
+
+        if entity_name.isnumeric():
+            entity_id = entity_name
+        else:
+            entity_type = ec.APM_APP
+            match = re.match(r'(%s|%s|%s|%s)\.(.+)' % (ec.APM_APP, ec.BROWSER_APP, ec.MOBILE_APP, ec.APM_KT), entity_name)
+            if match:
+                entity_type = match.group(1)
+                entity_name = match.group(2)
+            result = ec.get_entity_by_name(api_key, per_api_key, account_id, entity_type, entity_name)
+            if not result['entityFound']:
+                continue
+            entity = result['entity']
+            logger.info('Found entity for entity named %s' % entity_name)
+            if entity_type == ec.APM_KT:
+                entity_id = str(entity['id'])
+            else:
+                entity_id = str(entity['applicationId'])
+        
+        if entity_id in policies_by_entity and len(policies_by_entity[entity_id]) > 0:
+            names.extend(policies_by_entity[entity_id])
+
+    return names

@@ -17,6 +17,7 @@ MONITOR_LABELS_FILE = "monitor_labels.json"
 APM_LABELS_FILE = "apm_labels.json"
 ALERT_POLICIES_DIR = "alert_policies"
 ALERT_POLICIES_FILE = "alert_policies.json"
+ALERT_POLICY_ENTITY_MAP_FILE = "alert_policy_entity_map.json"
 ALERT_VIOLATIONS_DIR = "alert_violations"
 ALERT_VIOLATIONS_FILE = "alert_violations.json"
 ALERT_VIOLATIONS_CSV = "alert_violations.csv"
@@ -169,6 +170,8 @@ def load_synth_conditions(account_id):
 def load_alert_policies(account_id):
     return load_json_file(account_id, ALERT_POLICIES_DIR, ALERT_POLICIES_FILE)
 
+def load_alert_policy_entity_map(account_id):
+    return load_json_file(account_id, ALERT_POLICIES_DIR, ALERT_POLICY_ENTITY_MAP_FILE)
 
 def load_alert_channels(account_id):
     return load_json_file(account_id, ALERT_POLICIES_DIR, ALERT_CHANNELS_FILE)
@@ -230,6 +233,10 @@ def save_alert_policies(account_id, alert_policies):
     alert_policies_dir = base_dir / account_id / ALERT_POLICIES_DIR
     save_json(alert_policies_dir, ALERT_POLICIES_FILE, alert_policies)
 
+def save_alert_policy_entity_map(account_id, alert_policies_app_map):
+    base_dir = Path("db")
+    alert_policies_dir = base_dir / account_id / ALERT_POLICIES_DIR
+    save_json(alert_policies_dir, ALERT_POLICY_ENTITY_MAP_FILE, alert_policies_app_map)
 
 def save_alert_violations(account_id, alert_violations):
     base_dir = Path("db")

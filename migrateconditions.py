@@ -21,9 +21,9 @@ EXT_SVC_CONDITIONS = 'ext-svc-conditions'
 INFRA_CONDITIONS = 'infra-conditions'
 ALL_CONDITIONS = [SYNTHETICS, APP_CONDITIONS, NRQL_CONDITIONS, EXT_SVC_CONDITIONS, INFRA_CONDITIONS]  # currently used only for testing
 
-
 def setup_params():
-    parser.add_argument('--fromFile', nargs=1, type=str, required=True, help='Path to file with alert policy names')
+    parser.add_argument('--fromFile', nargs=1, type=str, required=False, help='Path to file with alert policy names')
+    parser.add_argument('--fromFileEntities', nargs=1, type=str, required=False, help='Path to file with entity IDs')
     parser.add_argument('--personalApiKey', nargs=1, type=str, required=True, help='Personal API Key for GraphQL client \
                                                                     alternately environment variable ENV_PERSONAL_API_KEY')
     parser.add_argument('--sourceAccount', nargs=1, type=str, required=True, help='Source accountId')
@@ -44,10 +44,14 @@ def setup_params():
                         help='Pass --ext_svc_conditions to migrate external service conditions')
     parser.add_argument('--infra_conditions', dest='infra_conditions', required=False, action='store_true',
                         help='Pass --infra_conditions to migrate infrastructure conditions')
-
+    parser.add_argument('--useLocal', dest='useLocal', required=False, action='store_true',
+                        help='By default the policy to entity map is fetched. Pass this to use the policy to entity map pre-fetched by store_policy_entity_map.')
 
 def print_args(per_api_key, src_api_key, tgt_api_key):
-    logger.info("Using fromFile : " + args.fromFile[0])
+    if (args.fromFile):
+        logger.info("Using fromFile : " + args.fromFile[0])
+    if (args.fromFileEntities):
+        logger.info("Using fromFileEntities : " + args.fromFileEntities[0])
     logger.info("Using personalApiKey : " + len(per_api_key[:-4])*"*"+per_api_key[-4:])
     logger.info("Using sourceAccount : " + args.sourceAccount[0])
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*"+src_api_key[-4:])
@@ -66,10 +70,8 @@ def print_args(per_api_key, src_api_key, tgt_api_key):
     if args.infra_conditions:
         logger.info("Migrating conditions of type " + INFRA_CONDITIONS)
 
-
-def migrate_conditions(from_file, per_api_key, src_account_id, src_api_key, tgt_account_id, tgt_api_key, cond_types, match_source_status):
+def migrate_conditions(policy_names, per_api_key, src_account_id, src_api_key, tgt_account_id, tgt_api_key, cond_types, match_source_status):
     all_alert_status = {}
-    policy_names = store.load_names(from_file)
     for policy_name in policy_names:
         logger.info('Migrating conditions for policy ' + policy_name)
         all_alert_status[policy_name] = {}
@@ -102,9 +104,7 @@ def migrate_conditions(from_file, per_api_key, src_account_id, src_api_key, tgt_
         if INFRA_CONDITIONS in cond_types:
             infra_migrator.migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_account_id, 
                                 tgt_api_key, tgt_policy, match_source_status)
-    status_file = src_account_id + '_' + utils.file_name_from(from_file) + '_' + tgt_account_id + '_conditions.csv'
-    store.save_status_csv(status_file, all_alert_status, cs)
-
+    return all_alert_status
 
 def parse_condition_types(args):
     condition_types = []
@@ -120,7 +120,6 @@ def parse_condition_types(args):
         condition_types.append(INFRA_CONDITIONS)
     return condition_types
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Migrate Alert Conditions from source to target policy')
     setup_params()
@@ -134,6 +133,7 @@ if __name__ == '__main__':
     personal_api_key = utils.ensure_personal_api_key(args)
     if not personal_api_key:
         utils.error_and_exit('personal_api_key', 'ENV_PERSONAL_API_KEY')
+    
     cond_types = parse_condition_types(args)
     if len(cond_types) == 0:
         logger.error('At least one condition type must be specified currently supported ' +
@@ -141,6 +141,44 @@ if __name__ == '__main__':
         sys.exit()
     print_args(personal_api_key, source_api_key, target_api_key)
     logger.info('Starting Alert Conditions Migration')
-    migrate_conditions(args.fromFile[0], personal_api_key, args.sourceAccount[0], source_api_key, args.targetAccount[0],
-                       target_api_key, cond_types, args.matchSourceState)
+
+    fromFile = args.fromFile[0] if 'fromFile' in args else None
+    fromFileEntities = args.fromFileEntities[0] if 'fromFileEntities' in args else None
+    if not fromFile and not fromFileEntities:
+        logger.error('Error: At least one of fromFile or fromFileEntities must be specified.')
+        sys.exit()
+
+    source_acct_id = args.sourceAccount[0]
+    target_acct_id = args.targetAccount[0]
+
+    print_args(personal_api_key, source_api_key, target_api_key)
+
+    policy_names = utils.load_alert_policy_names(
+        fromFile,
+        fromFileEntities,
+        source_acct_id,
+        source_api_key,
+        personal_api_key,
+        args.useLocal
+    )
+
+    status = migrate_conditions(
+        policy_names,
+        personal_api_key,
+        source_acct_id,
+        source_api_key,
+        target_acct_id,
+        target_api_key,
+        cond_types,
+        args.matchSourceState
+    )
+
+    status_file = ac.get_alert_status_file_name(
+        fromFile,
+        fromFileEntities,
+        source_acct_id,
+        target_acct_id
+    )
+    store.save_status_csv(status_file, status, cs)
+
     logger.info('Done Alert Conditions Migration')

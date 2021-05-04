@@ -5,7 +5,7 @@ import library.clients.alertsclient as ac
 
 logger = logger.get_logger(os.path.basename(__file__))
 
-def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
+def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
     logger.info('Loading source infrastructure conditions ')
     infra_conditions = ac.get_infra_conditions(src_api_key, src_policy['id'])[ac.INFRA_CONDITIONS]
     logger.info('Found infrastructure conditions ' + str(len(infra_conditions)))

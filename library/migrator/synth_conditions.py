@@ -8,7 +8,7 @@ import library.clients.entityclient as ec
 logger = logger.get_logger(os.path.basename(__file__))
 
 
-def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
+def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
     logger.info('Loading source synthetic conditions ')
     synth_conditions = ac.get_synthetic_conditions(src_api_key, src_policy['id'])[ac.SYNTH_CONDITIONS]
     logger.info('Found synthetic conditions ' + str(len(synth_conditions)))
@@ -22,7 +22,7 @@ def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
         src_monitor_name = mc.get_monitor(src_api_key, src_monitor_id)['monitor']['name']
         all_alert_status[condition_row] = {cs.COND_NAME: synth_condition['name']}
         all_alert_status[condition_row][cs.SRC_MONITOR] = src_monitor_name
-        result = ec.gql_get_matching_entity_by_name(per_api_key, ec.SYNTH_MONITOR, src_monitor_name, tgt_acct_id)
+        result = ec.gql_get_matching_entity_by_name(tgt_api_key, ec.SYNTH_MONITOR, src_monitor_name, tgt_acct_id)
         if result['entityFound']:
             tgt_monitor = result['entity']
             all_alert_status[condition_row][cs.TGT_ACCOUNT] = tgt_monitor['accountId']

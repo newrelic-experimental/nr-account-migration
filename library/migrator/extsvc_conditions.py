@@ -24,7 +24,7 @@ def get_entity_type(extsvc_condition):
         return ec.MOBILE_APP
 
 
-def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
+def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
     log.info('loading source ext svc conditions')
     extsvc_conditions = ac.get_extsvc_conditions(src_api_key, src_policy['id'])[ac.EXTSVC_CONDITIONS]
     if len(extsvc_conditions) <= 0:
@@ -47,7 +47,7 @@ def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
                 continue
             src_entity = result['entity']
             log.info('source entity found ' + str(src_entity['id']))
-            result = ec.gql_get_matching_entity(per_api_key, entity_type, src_entity, tgt_acct_id)
+            result = ec.gql_get_matching_entity(tgt_api_key, entity_type, src_entity, tgt_acct_id)
             if not result['entityFound']:
                 status_tgt_not_found(all_alert_status, cond_row, src_entity, extsvc_condition)
                 continue

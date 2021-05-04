@@ -1,4 +1,5 @@
 import argparse
+import configparser
 import os
 import sys
 import library.localstore as store
@@ -14,30 +15,28 @@ import fetchchannels
 logger = m_logger.get_logger(os.path.basename(__file__))
 fetch_channels = True
 
-
-def setup_params():
+def create_argument_parser():
+    parser = argparse.ArgumentParser(description='Migrate Alert Policies and channels')
     parser.add_argument('--fromFile', nargs=1, type=str, required=False, help='Path to file with alert policy names')
     parser.add_argument('--fromFileEntities', nargs=1, type=str, required=False, help='Path to file with entity IDs')
-    parser.add_argument('--personalApiKey', nargs=1, type=str, required=True, help='Personal API Key for GraphQL client \
-                                                                    alternately environment variable ENV_PERSONAL_API_KEY')
     parser.add_argument('--sourceAccount', nargs=1, type=int, required=True, help='Source accountId')
-    parser.add_argument('--sourceApiKey', nargs=1, type=str, required=True, help='Source account API Key or \
+    parser.add_argument('--sourceApiKey', nargs=1, type=str, required=False, help='Source account API Key or \
                                                                         set environment variable ENV_SOURCE_API_KEY')
     parser.add_argument('--targetAccount', nargs=1, type=int,  required=True, help='Target accountId')
     parser.add_argument('--targetApiKey', nargs=1, type=str, required=False, help='Target API Key, \
                                                                     or set environment variable ENV_TARGET_API_KEY')
     parser.add_argument('--useLocal', dest='useLocal', required=False, action='store_true',
                         help='By default channels are fetched.Pass this to use channels pre-fetched by fetchchannels')
+    return parser
 
 
 # prints args and also sets the fetch_latest flag
-def print_args(per_api_key, src_api_key, tgt_api_key):
+def print_args(src_api_key, tgt_api_key):
     global fetch_channels
     if (args.fromFile):
         logger.info("Using fromFile : " + args.fromFile[0])
     if (args.fromFileEntities):
         logger.info("Using fromFileEntities : " + args.fromFileEntities[0])
-    logger.info("Using personalApiKey : " + len(per_api_key[:-4])*"*"+per_api_key[-4:])
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*"+src_api_key[-4:])
     logger.info("Using targetAccount : " + str(args.targetAccount[0]))
@@ -152,39 +151,21 @@ def update_create_status(all_alert_status, policy_name, result):
     if 'error' in result:
         all_alert_status[policy_name][askeys.ERROR] = result['error']
 
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Migrate Alert Policies and channels')
-    setup_params()
-    args = parser.parse_args()
-    source_api_key = utils.ensure_source_api_key(args)
-    if not source_api_key:
-        utils.error_and_exit('source_api_key', 'ENV_SOURCE_API_KEY')
-    target_api_key = utils.ensure_target_api_key(args)
-    if not target_api_key:
-        utils.error_and_exit('target_api_key', 'ENV_TARGET_API_KEY')
-    personal_api_key = utils.ensure_personal_api_key(args)
-    if not personal_api_key:
-        utils.error_and_exit('personal_api_key', 'ENV_PERSONAL_API_KEY')
-
-    fromFile = args.fromFile[0] if 'fromFile' in args else None
-    fromFileEntities = args.fromFileEntities[0] if 'fromFileEntities' in args else None
-    if not fromFile and not fromFileEntities:
-        logger.error('Error: At least one of fromFile or fromFileEntities must be specified.')
-        sys.exit()
-
-    source_acct_id = args.sourceAccount[0]
-    target_acct_id = args.targetAccount[0]
-
-    print_args(personal_api_key, source_api_key, target_api_key)
-
+def migrate(
+    policy_file_path: str,
+    entity_file_path: str,
+    source_acct_id: int,
+    target_acct_id: int,
+    source_api_key: str,
+    target_api_key: str,
+    use_local: bool = False
+):
     policy_names = utils.load_alert_policy_names(
-        fromFile,
-        fromFileEntities,
+        policy_file_path,
+        entity_file_path,
         source_acct_id,
         source_api_key,
-        personal_api_key,
-        args.useLocal
+        use_local
     )
 
     status = migrate_alert_policies(
@@ -196,9 +177,107 @@ if __name__ == '__main__':
     )
 
     status_file = ac.get_alert_status_file_name(
-        fromFile,
-        fromFileEntities,
+        policy_file_path,
+        entity_file_path,
         source_acct_id,
         target_acct_id
     )
     store.save_status_csv(status_file, status, askeys)
+
+    return status_file
+
+class MigratePoliciesCommand:
+    def configure_parser(self, migrate_subparsers, global_options_parser):
+        # Create the parser for the "policies" command
+        policies_parser = migrate_subparsers.add_parser('policies', help='policies help', parents=[global_options_parser])
+        policies_parser.add_argument(
+            '--policy_file',
+            nargs=1,
+            type=str,
+            required=False,
+            help='Path to file with alert policy names'
+        )
+        policies_parser.add_argument(
+            '--entity_file',
+            nargs=1,
+            type=str,
+            required=False,
+            help='Path to file with entity names and IDs'
+        )
+        policies_parser.add_argument(
+            '--use_local',
+            dest='use_local',
+            required=False,
+            action='store_true',
+            help='By default the policy to entity map is fetched. Pass this to use the policy to entity map pre-fetched by store_policy_entity_map.'
+        )
+        policies_parser.set_defaults(func=self.run)
+
+    def run(self, config: configparser.ConfigParser, args: argparse.Namespace):
+        logger.info('Starting alert policy migration...')
+
+        base_config = utils.process_base_config(config, 'migrate.policies')
+
+        policy_file_path = config.get(
+            'migrate.conditions',
+            'policy_file',
+            fallback = args.policy_file
+        )        
+        entity_file_path = config.get(
+            'migrate.conditions',
+            'entity_file',
+            fallback = args.entity_file
+        )
+        if not policy_file_path and not entity_file_path:
+            utils.error_message_and_exit(
+                'Error: Either a policy file or entity file must be specified.'
+            )
+
+        use_local = config.getboolean(
+            'migrate.conditions',
+            'use_local',
+            fallback = args.use_local
+        )
+
+        migrate(
+            policy_file_path,
+            entity_file_path,
+            base_config['source_account_id'],
+            base_config['target_account_id'],
+            base_config['source_api_key'],
+            base_config['target_api_key'],
+            use_local
+        )
+
+        logger.info('Completed alert policy migration.')
+
+if __name__ == '__main__':
+    parser = create_argument_parser()
+
+    args = parser.parse_args()
+
+    source_api_key = utils.ensure_source_api_key(args)
+    if not source_api_key:
+        utils.error_and_exit('source_api_key', 'ENV_SOURCE_API_KEY')
+
+    target_api_key = utils.ensure_target_api_key(args)
+    if not target_api_key:
+        utils.error_and_exit('target_api_key', 'ENV_TARGET_API_KEY')
+
+    fromFile = args.fromFile[0] if 'fromFile' in args else None
+    fromFileEntities = args.fromFileEntities[0] if 'fromFileEntities' in args else None
+    if not fromFile and not fromFileEntities:
+        logger.error('Error: At least one of fromFile or fromFileEntities must be specified.')
+        sys.exit()
+
+    print_args(source_api_key, target_api_key)
+
+    migrate(
+        fromFile,
+        fromFileEntities,
+        args.sourceAccount[0],
+        args.targetAccount[0],
+        source_api_key,
+        target_api_key,
+        args.useLocal
+    )

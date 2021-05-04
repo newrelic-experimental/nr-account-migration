@@ -6,7 +6,7 @@ import library.clients.entityclient as ec
 import library.localstore as store
 import json
 import requests
-
+import configparser
 
 DEFAULT_INDENT = 2
 
@@ -110,9 +110,11 @@ def ensure_personal_api_key(args):
 
 
 def error_and_exit(param_name, env_name):
-    logger.error('Error: Missing param ' + param_name + ' or env variable ' + env_name)
-    sys.exit()
+    error_message_and_exit('Error: Missing param ' + param_name + ' or env variable ' + env_name)
 
+def error_message_and_exit(msg):
+    logger.error(msg)
+    sys.exit()
 
 def get_entity_type(app_condition):
     if app_condition['type'] in ['apm_app_metric', 'apm_jvm_metric']:
@@ -138,7 +140,7 @@ def get_condition_prefix(entity_type):
         return '-ktcon'
 
 
-def load_alert_policy_names(policyNameFile, entityNameFile, account_id, api_key, per_api_key, use_local):
+def load_alert_policy_names(policyNameFile, entityNameFile, account_id, api_key, use_local):
     names = set()
     if policyNameFile:
         policy_names = store.load_names(policyNameFile)
@@ -147,8 +149,59 @@ def load_alert_policy_names(policyNameFile, entityNameFile, account_id, api_key,
     if entityNameFile:
         entity_names = store.load_names(entityNameFile)
         if entity_names:
-            policy_names = ac.get_policy_names_by_entities(entity_names, account_id, api_key, per_api_key, use_local)
+            policy_names = ac.get_policy_names_by_entities(entity_names, account_id, api_key, use_local)
             if policy_names:
                 names.update(set(policy_names))
 
     return list(names)
+
+def config_get(
+    config: configparser.ConfigParser, 
+    section_name: str,
+    key: str,
+    fallback: str = None
+) -> str:
+    value = config.get(section_name, key, fallback=None)
+    if value:
+        return value
+
+    value = os.environ.get('ENV_%s' % key.upper())
+    if value:
+        return value
+
+    return fallback
+
+def process_base_config(
+    config: configparser.ConfigParser,
+    section_name: str
+) -> dict:
+    source_account_id = config_get(
+        config,
+        section_name,
+        'source_account_id'
+    )
+    if not source_account_id:
+        error_message_and_exit('A source account ID is required')
+
+    target_account_id = config_get(
+        config,
+        section_name,
+        'target_account_id'
+    )
+    if not target_account_id:
+        error_message_and_exit('A target account ID is required')
+
+    source_api_key = config_get(config, section_name, 'source_api_key')
+    if not source_api_key:
+        error_message_and_exit('A Source API key is required')
+
+    target_api_key = config_get(config, section_name, 'target_api_key')
+    if not target_api_key:
+        error_message_and_exit('A Target API key is required')
+
+    return {
+        'source_account_id': source_account_id,
+        'target_account_id': target_account_id,
+        'source_api_key': source_api_key,
+        'target_api_key': target_api_key,
+    }

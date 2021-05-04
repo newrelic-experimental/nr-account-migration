@@ -1,0 +1,7 @@
+[default]
+personal_api_key: 123456
+
+[migrate.policies]
+policies_file: /tmp/policies.txt
+entities_file: /tmp/entities.txt
+

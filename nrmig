@@ -35,7 +35,8 @@ def create_argument_parser() -> argparse.ArgumentParser:
     # Create the top-level parser
     parser = argparse.ArgumentParser(
         prog='nrmig',
-        parents=[global_options_parser]
+        parents=[global_options_parser],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     subparsers = parser.add_subparsers(
         required=True,
@@ -47,7 +48,9 @@ def create_argument_parser() -> argparse.ArgumentParser:
     # Create the parser for the "migrate" command
     migrate_parser = subparsers.add_parser(
         'migrate',
-        help='perform a migration'
+        help='perform a migration',
+        parents=[global_options_parser],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     migrate_subparsers = migrate_parser.add_subparsers(
         required=True,
@@ -80,7 +83,7 @@ def parse_config(config_file_path: str) -> configparser.ConfigParser:
 
     try:
         with open(config_file_path, 'r') as config_file:
-            config.read(config_file)
+            config.read_file(config_file)
     except OSError as err:
         m_utils.error_message_and_exit(
             'The file %s could not be opened: %s' % (
@@ -95,7 +98,7 @@ def main():
     """Parse the CLI arguments and run the appropriate commands.
     """
 
-    logger.info('Starting nrmig...')
+    logger.info('Starting migration...')
 
     # Create the argument parser
     parser = create_argument_parser()

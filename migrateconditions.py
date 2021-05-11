@@ -24,42 +24,142 @@ INFRA_CONDITIONS = 'infra-conditions'
 ALL_CONDITIONS = [SYNTHETICS, APP_CONDITIONS, NRQL_CONDITIONS, EXT_SVC_CONDITIONS, INFRA_CONDITIONS]  # currently used only for testing
 
 def create_argument_parser():
-    parser = argparse.ArgumentParser(description='Migrate Alert Conditions from source to target policy')
-    parser.add_argument('--fromFile', nargs=1, type=str, required=False, help='Path to file with alert policy names')
-    parser.add_argument('--fromFileEntities', nargs=1, type=str, required=False, help='Path to file with entity IDs')
-    parser.add_argument('--sourceAccount', nargs=1, type=str, required=True, help='Source accountId')
-    parser.add_argument('--sourceApiKey', nargs=1, type=str, required=True, help='Source account API Key or \
-                                                                        set environment variable ENV_SOURCE_API_KEY')
-    parser.add_argument('--targetAccount', nargs=1, type=str,  required=True, help='Target accountId')
-    parser.add_argument('--targetApiKey', nargs=1, type=str, required=False, help='Target API Key, \
-                                                                        or set environment variable ENV_TARGET_API_KEY')
-    parser.add_argument('--matchSourceState', dest='matchSourceState', required=False, action='store_true',
-                    help='Pass --matchSourceState to match condition enable/disable state from source account instead of disabling in target account')
-    parser.add_argument('--synthetics', dest='synthetics', required=False, action='store_true',
-                    help='Pass --synthetics to migrate synthetics conditions')
-    parser.add_argument('--app_conditions', dest='app_conditions', required=False, action='store_true',
-                        help='Pass --app_conditions to migrate app conditions')
-    parser.add_argument('--nrql_conditions', dest='nrql_conditions', required=False, action='store_true',
-                        help='Pass --nrql_conditions to migrate NRQL conditions')
-    parser.add_argument('--ext_svc_conditions', dest='ext_svc_conditions', required=False, action='store_true',
-                        help='Pass --ext_svc_conditions to migrate external service conditions')
-    parser.add_argument('--infra_conditions', dest='infra_conditions', required=False, action='store_true',
-                        help='Pass --infra_conditions to migrate infrastructure conditions')
-    parser.add_argument('--useLocal', dest='useLocal', required=False, action='store_true',
-                        help='By default the policy to entity map is fetched. Pass this to use the policy to entity map pre-fetched by store_policy_entity_map.')
+    parser = argparse.ArgumentParser(
+        description='Migrate Alert Conditions from source to target policy'
+    )
+    return configure_parser(parser)
+
+def configure_parser(
+    parser: argparse.ArgumentParser,
+    is_standalone: bool = True
+):
+    parser.add_argument(
+        '--fromFile',
+        '--policy_file',
+        nargs=1,
+        type=str,
+        required=False,
+        help='Path to file with alert policy names',
+        dest='policy_file'
+    )
+    parser.add_argument(
+        '--fromFileEntities',
+        '--entity_file',
+        nargs=1,
+        type=str,
+        required=False,
+        help='Path to file with entity IDs',
+        dest='entity_file'
+    )
+    parser.add_argument(
+        '--sourceAccount',
+        '--source_account_id',
+        nargs=1,
+        type=str,
+        required=is_standalone,
+        help='Source accountId',
+        dest='source_account_id'
+    )
+    parser.add_argument(
+        '--sourceApiKey',
+        '--source_api_key',
+        nargs=1,
+        type=str,
+        required=False,
+        help='Source account API Key or set environment variable ENV_SOURCE_API_KEY',
+        dest='source_api_key'
+    )
+    parser.add_argument(
+        '--targetAccount',
+        '--target_account_id',
+        nargs=1,
+        type=str,
+        required=is_standalone,
+        help='Target accountId',
+        dest='target_account_id'
+    )
+    parser.add_argument(
+        '--targetApiKey',
+        '--target_api_key',
+        nargs=1,
+        type=str,
+        required=False,
+        help='Target API Key, or set environment variable ENV_TARGET_API_KEY',
+        dest='target_api_key'
+    )
+    parser.add_argument(
+        '--matchSourceState',
+        '--match_source_state',
+        dest='match_source_state',
+        required=False,
+        action='store_true',
+        help='Pass --matchSourceState to match condition enable/disable state from source account instead of disabling in target account'
+    )
+    parser.add_argument(
+        '--synthetics',
+        dest='synthetics',
+        required=False,
+        action='store_true',
+        help='Pass --synthetics to migrate synthetics conditions'
+    )
+    parser.add_argument(
+        '--app_conditions',
+        dest='app_conditions',
+        required=False,
+        action='store_true',
+        help='Pass --app_conditions to migrate app conditions'
+    )
+    parser.add_argument(
+        '--nrql_conditions',
+        dest='nrql_conditions',
+        required=False,
+        action='store_true',
+        help='Pass --nrql_conditions to migrate NRQL conditions'
+    )
+    parser.add_argument(
+        '--ext_svc_conditions',
+        dest='ext_svc_conditions',
+        required=False,
+        action='store_true',
+        help='Pass --ext_svc_conditions to migrate external service conditions'
+    )
+    parser.add_argument(
+        '--infra_conditions',
+        dest='infra_conditions',
+        required=False,
+        action='store_true',
+        help='Pass --infra_conditions to migrate infrastructure conditions'
+    )
+    parser.add_argument(
+        '--useLocal',
+        '--use_local',
+        dest='use_local',
+        required=False,
+        action='store_true',
+        help='By default the policy to entity map is fetched. Pass this to use the policy to entity map pre-fetched by store_policy_entity_map.'
+    )
+    parser.add_argument(
+        '--all',
+        dest='all',
+        required=False,
+        action='store_true',
+        help='Pass --all to migrate all conditions'
+    )
     return parser
 
 def print_args(src_api_key, tgt_api_key):
-    if (args.fromFile):
-        logger.info("Using fromFile : " + args.fromFile[0])
-    if (args.fromFileEntities):
-        logger.info("Using fromFileEntities : " + args.fromFileEntities[0])
-    logger.info("Using sourceAccount : " + args.sourceAccount[0])
+    if (args.policy_file):
+        logger.info("Using fromFile : " + args.policy_file[0])
+    if (args.entity_file):
+        logger.info("Using fromFileEntities : " + args.entity_file[0])
+    logger.info("Using sourceAccount : " + args.source_account_id[0])
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*"+src_api_key[-4:])
-    logger.info("Using targetAccount : " + args.targetAccount[0])
+    logger.info("Using targetAccount : " + args.target_account_id[0])
     logger.info("Using targetApiKey : " + len(tgt_api_key[:-4]) * "*" + tgt_api_key[-4:])
-    if args.matchSourceState:
+    if args.match_source_state:
         logger.info("Matching condition enable/disable state in target account instead of disabling all new conditions")
+    if args.all:
+        logger.info('Migrating all conditions')
     if args.synthetics:
         logger.info("Migrating conditions of type " + SYNTHETICS)
     if args.app_conditions:
@@ -70,6 +170,8 @@ def print_args(src_api_key, tgt_api_key):
         logger.info("Migrating conditions of type " + EXT_SVC_CONDITIONS)
     if args.infra_conditions:
         logger.info("Migrating conditions of type " + INFRA_CONDITIONS)
+    if args.use_local:
+        logger.info("Using local copy of alert policies and policy entity map")
 
 def migrate_conditions(policy_names, src_account_id, src_api_key, tgt_account_id, tgt_api_key, cond_types, match_source_status):
     all_alert_status = {}
@@ -108,6 +210,9 @@ def migrate_conditions(policy_names, src_account_id, src_api_key, tgt_account_id
     return all_alert_status
 
 def parse_condition_types(args):
+    if args.all:
+        return ALL_CONDITIONS
+    
     condition_types = []
     if args.synthetics:
         condition_types.append(SYNTHETICS)
@@ -120,6 +225,52 @@ def parse_condition_types(args):
     if args.infra_conditions:
         condition_types.append(INFRA_CONDITIONS)
     return condition_types
+
+def parse_condition_types_with_config(
+    config: configparser.ConfigParser,
+    args: argparse.Namespace
+):
+    if config.getboolean(
+        'migrate.conditions',
+        'all',
+        fallback = args.all
+    ):
+        return ALL_CONDITIONS
+
+    condition_types = []
+    if config.getboolean(
+        'migrate.conditions',
+        'synthetics',
+        fallback = args.synthetics
+    ):
+        condition_types.append(SYNTHETICS)
+    if config.getboolean(
+        'migrate.conditions',
+        'app_conditions',
+        fallback = args.app_conditions
+    ):
+        condition_types.append(APP_CONDITIONS)
+    if config.getboolean(
+        'migrate.conditions',
+        'nrql_conditions',
+        fallback = args.nrql_conditions
+    ):
+        condition_types.append(NRQL_CONDITIONS)
+    if config.getboolean(
+        'migrate.conditions',
+        'ext_svc_conditions',
+        fallback = args.ext_svc_conditions
+    ):
+        condition_types.append(EXT_SVC_CONDITIONS)
+    if config.getboolean(
+        'migrate.conditions',
+        'infra_conditions',
+        fallback = args.infra_conditions
+    ):
+        condition_types.append(INFRA_CONDITIONS)
+
+    return condition_types
+        
 
 def migrate(
     policy_file_path: str,
@@ -163,53 +314,37 @@ def migrate(
 class MigrateConditionsCommand:
     def configure_parser(self, migrate_subparsers, global_options_parser):
         # Create the parser for the "conditions" command
-        policies_parser = migrate_subparsers.add_parser('conditions', help='policies help', parents=[global_options_parser])
-        policies_parser.add_argument(
-            '--policy_file',
-            nargs=1,
-            type=str,
-            required=False,
-            help='Path to file with alert policy names'
+        conditions_parser = migrate_subparsers.add_parser(
+            'conditions',
+            help='conditions help',
+            parents=[global_options_parser],
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
-        policies_parser.add_argument(
-            '--entity_file',
-            nargs=1,
-            type=str,
-            required=False,
-            help='Path to file with entity names and IDs'
-        )
-        policies_parser.add_argument(
-            '--use_local',
-            dest='use_local',
-            required=False,
-            action='store_true',
-            help='By default the policy to entity map is fetched. Pass this to use the policy to entity map pre-fetched by store_policy_entity_map.'
-        )
-        policies_parser.add_argument(
-            '--match_source_state',
-            dest='match_source_state',
-            required=False,
-            action='store_true',
-            help='Pass --match_source_state to match condition enable/disable state from source account instead of disabling in target account'
-        )
-        policies_parser.set_defaults(func=self.run)
+        configure_parser(conditions_parser, False)
+        conditions_parser.set_defaults(func=self.run)
 
     def run(self, config: configparser.ConfigParser, args: argparse.Namespace):
-        base_config = utils.process_base_config(config, 'migrate.conditions')
+        logger.info('Starting alert condition migration...')
 
-        policy_file_path = config.get(
+        base_config = utils.process_base_config(
+            config,
             'migrate.conditions',
-            'policy_file',
-            fallback = args.policy_file
-        )        
-        entity_file_path = config.get(
-            'migrate.conditions',
-            'entity_file',
-            fallback = args.entity_file
+            args
         )
+
+        policy_file_path = config.get('migrate.conditions', 'policy_file')
+        if not policy_file_path:
+            if args.policy_file:
+                policy_file_path = args.policy_file[0]
+
+        entity_file_path = config.get('migrate.conditions', 'entity_file')
+        if not entity_file_path:
+            if args.entity_file:
+                entity_file_path = args.entity_file[0]
+
         if not policy_file_path and not entity_file_path:
             utils.error_message_and_exit(
-                'Error: Either a policy file or entity file must be specified.'
+                'Either a policy file or entity file must be specified.'
             )
 
         use_local = config.getboolean(
@@ -223,6 +358,12 @@ class MigrateConditionsCommand:
             fallback = args.match_source_state
         )
 
+        cond_types = parse_condition_types_with_config(config, args)
+        if len(cond_types) == 0:
+            logger.error('At least one condition type must be specified currently supported ' +
+                        SYNTHETICS + ',' + APP_CONDITIONS + ',' + NRQL_CONDITIONS + ',' + INFRA_CONDITIONS)
+            sys.exit()
+            
         migrate(
             policy_file_path,
             entity_file_path,
@@ -235,6 +376,8 @@ class MigrateConditionsCommand:
             match_source_state
         )
         
+        logger.info('Completed alert condition migration.')
+
 if __name__ == '__main__':
     parser = create_argument_parser()
 
@@ -254,31 +397,22 @@ if __name__ == '__main__':
                      SYNTHETICS + ',' + APP_CONDITIONS + ',' + NRQL_CONDITIONS + ',' + INFRA_CONDITIONS)
         sys.exit()
 
-    print_args(source_api_key, target_api_key)
-
-    logger.info('Starting Alert Conditions Migration')
-
-    fromFile = args.fromFile[0] if 'fromFile' in args else None
-    fromFileEntities = args.fromFileEntities[0] if 'fromFileEntities' in args else None
-    if not fromFile and not fromFileEntities:
-        logger.error('Error: At least one of fromFile or fromFileEntities must be specified.')
+    policy_file = args.policy_file[0] if args.policy_file else None
+    entity_file = args.entity_file[0] if args.entity_file else None
+    if not policy_file and not entity_file:
+        logger.error('Either a policy file or entity file must be specified.')
         sys.exit()
-
-    source_acct_id = args.sourceAccount[0]
-    target_acct_id = args.targetAccount[0]
 
     print_args(source_api_key, target_api_key)
 
     migrate(
-        fromFile,
-        fromFileEntities,
-        source_acct_id,
-        target_acct_id,
+        policy_file,
+        entity_file,
+        args.source_account_id[0],
+        args.target_account_id[0],
         source_api_key,
         target_api_key,
         cond_types,
-        args.useLocal,
-        args.matchSourceState
+        args.use_local,
+        args.match_source_state
     )
-
-    logger.info('Done Alert Conditions Migration')

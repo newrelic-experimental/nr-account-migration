@@ -7,6 +7,7 @@ import library.localstore as store
 import json
 import requests
 import configparser
+import argparse
 
 DEFAULT_INDENT = 2
 
@@ -86,28 +87,23 @@ def file_name_from(path):
 
 
 def ensure_target_api_key(args):
-    if args.targetApiKey:
+    if 'targetApiKey' in args and args.targetApiKey:
         api_key = args.targetApiKey[0]
+    elif 'target_api_key' in args and args.target_api_key:
+        api_key = args.target_api_key[0]
     else:
         api_key = os.environ.get('ENV_TARGET_API_KEY')
     return api_key
 
 
 def ensure_source_api_key(args):
-    if args.sourceApiKey:
+    if 'sourceApiKey' in args and args.sourceApiKey:
         api_key = args.sourceApiKey[0]
+    elif 'source_api_key' in args and args.source_api_key:
+        api_key = args.source_api_key[0]
     else:
         api_key = os.environ.get('ENV_SOURCE_API_KEY')
     return api_key
-
-
-def ensure_personal_api_key(args):
-    if args.personalApiKey:
-        api_key = args.personalApiKey[0]
-    else:
-        api_key = os.environ.get('ENV_PERSONAL_API_KEY')
-    return api_key
-
 
 def error_and_exit(param_name, env_name):
     error_message_and_exit('Error: Missing param ' + param_name + ' or env variable ' + env_name)
@@ -158,22 +154,18 @@ def load_alert_policy_names(policyNameFile, entityNameFile, account_id, api_key,
 def config_get(
     config: configparser.ConfigParser, 
     section_name: str,
-    key: str,
-    fallback: str = None
+    key: str
 ) -> str:
-    value = config.get(section_name, key, fallback=None)
+    value = config.get(section_name, key)
     if value:
         return value
 
-    value = os.environ.get('ENV_%s' % key.upper())
-    if value:
-        return value
-
-    return fallback
+    return os.environ.get('ENV_%s' % key.upper())
 
 def process_base_config(
     config: configparser.ConfigParser,
-    section_name: str
+    section_name: str,
+    args: argparse.Namespace
 ) -> dict:
     source_account_id = config_get(
         config,
@@ -181,7 +173,9 @@ def process_base_config(
         'source_account_id'
     )
     if not source_account_id:
-        error_message_and_exit('A source account ID is required')
+        if not args.source_account_id:
+            error_message_and_exit('A source account ID is required')
+        source_account_id = args.source_account_id[0]
 
     target_account_id = config_get(
         config,
@@ -189,15 +183,21 @@ def process_base_config(
         'target_account_id'
     )
     if not target_account_id:
-        error_message_and_exit('A target account ID is required')
+        if not args.target_account_id:
+            error_message_and_exit('A target account ID is required')
+        target_account_id = args.target_account_id[0]
 
     source_api_key = config_get(config, section_name, 'source_api_key')
     if not source_api_key:
-        error_message_and_exit('A Source API key is required')
+        if not args.source_api_key:
+            error_message_and_exit('A Source API key is required')
+        source_api_key = args.source_api_key[0]
 
     target_api_key = config_get(config, section_name, 'target_api_key')
     if not target_api_key:
-        error_message_and_exit('A Target API key is required')
+        if not args.target_api_key:
+            error_message_and_exit('A Target API key is required')
+        target_api_key = args.target_api_key[0]
 
     return {
         'source_account_id': source_account_id,

@@ -8,7 +8,7 @@ import library.clients.entityclient as ec
 logger = logger.get_logger(os.path.basename(__file__))
 
 
-def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
+def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
     logger.info('Loading source location failure conditions ')
     result = ac.get_location_failure_conditions(src_api_key, src_policy['id'])
     loc_conds = []
@@ -27,7 +27,7 @@ def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
             src_monitor_name = mc.get_monitor(src_api_key, entity_id)['monitor']['name']
             all_alert_status[condition_row] = {cs.COND_NAME: loc_condition['name']}
             all_alert_status[condition_row][cs.SRC_MONITOR] = src_monitor_name
-            result = ec.gql_get_matching_entity_by_name(per_api_key, ec.SYNTH_MONITOR, src_monitor_name, tgt_acct_id)
+            result = ec.gql_get_matching_entity_by_name(tgt_api_key, ec.SYNTH_MONITOR, src_monitor_name, tgt_acct_id)
             if not result['entityFound']:
                 all_alert_status[condition_row][cs.TGT_MONITOR] = 'NOT_FOUND'
                 logger.warn('No matching entity found in target account ' + src_monitor_name)

@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+
+"""New Relic Account Migration Utility
+
+This script can be used to run account migration tasks.
+"""
+
+import argparse
+import configparser
+import os
+import library.migrationlogger as m_logger
+import library.utils as m_utils
+import migratepolicies
+import migrateconditions
+
+logger = m_logger.get_logger(os.path.basename(__file__))
+
+def create_argument_parser() -> argparse.ArgumentParser:
+    """Create and configure the nrmig argument parser
+
+    :returns: a configured argument parser
+    :rtype: argparse.ArgumentParser
+    """
+
+    # Create the global options group parser
+    global_options_parser = argparse.ArgumentParser(add_help=False)
+    global_options_parser.add_argument(
+        '-c',
+        '--config',
+        type=str, 
+        default='config.ini',
+        help='the config file to use'
+    )
+
+    # Create the top-level parser
+    parser = argparse.ArgumentParser(
+        prog='nrmig',
+        parents=[global_options_parser],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    subparsers = parser.add_subparsers(
+        required=True,
+        dest='command',
+        title='commands',
+        metavar='<command>'
+    )
+
+    # Create the parser for the "migrate" command
+    migrate_parser = subparsers.add_parser(
+        'migrate',
+        help='perform a migration',
+        parents=[global_options_parser],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    migrate_subparsers = migrate_parser.add_subparsers(
+        required=True,
+        dest='migrate_command',
+        title='sub-commands',
+        metavar='<migrate-command>'
+    )
+
+    # Let each of the commands configure their parsing rules
+    for clazz in [
+        migratepolicies.MigratePoliciesCommand,
+        migrateconditions.MigrateConditionsCommand,
+    ]:
+        command = clazz()
+        command.configure_parser(migrate_subparsers, global_options_parser)
+
+    return parser
+
+def parse_config(config_file_path: str) -> configparser.ConfigParser:
+    """Parse the configuration file
+
+    :param config_file_path: the configuraiton file
+    :type config_file_path: str
+    :returns: an initialized configuration parser
+    :rtype: configparser.ConfigParser
+    """
+
+    logger.info('Parsing configuration from file %s...' % config_file_path)
+    config = configparser.ConfigParser()
+
+    try:
+        with open(config_file_path, 'r') as config_file:
+            config.read_file(config_file)
+    except OSError as err:
+        m_utils.error_message_and_exit(
+            'The file %s could not be opened: %s' % (
+                config_file_path,
+                err.strerror
+            )
+        )
+
+    return config
+
+def main():
+    """Parse the CLI arguments and run the appropriate commands.
+    """
+
+    logger.info('Starting migration...')
+
+    # Create the argument parser
+    parser = create_argument_parser()
+
+    # Parse the command line
+    args = parser.parse_args()
+
+    # Parse the configuration file
+    config = parse_config(args.config)
+
+    # Run the appropriate command function
+    args.func(config, args)
+
+    logger.info('Done.')
+
+if __name__ == "__main__":
+    main()
+

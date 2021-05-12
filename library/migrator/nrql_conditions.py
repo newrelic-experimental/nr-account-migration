@@ -6,7 +6,7 @@ import library.clients.alertsclient as ac
 logger = logger.get_logger(os.path.basename(__file__))
 
 
-def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
+def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
     logger.info('Loading NRQL conditions ')
     result = ac.get_nrql_conditions(src_api_key, src_policy['id'])
     nrql_conds = []

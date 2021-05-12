@@ -523,13 +523,13 @@ def get_entity(api_key, entity_type, entity_id):
     logger.warn('Skipping non APM entities ' + entity_type)
     return {'entityFound':  False}
 
-def get_entity_by_name(api_key, per_api_key, acct_id, entity_type, entity_name):
+def get_entity_by_name(api_key, acct_id, entity_type, entity_name):
     logger.info('Searching matching entity for type:' + entity_type + ', name:' + entity_name + ', acct:' + str(acct_id))
 
     if entity_type == APM_KT:
         return get_matching_kt(api_key, entity_name)
 
-    return gql_get_matching_entity_by_name(per_api_key, entity_type, entity_name, acct_id)
+    return gql_get_matching_entity_by_name(api_key, entity_type, entity_name, acct_id)
     
 # didn't end up using this as it was returning 500 errors sporadically in my test account
 # see gql_mutate_add_tag instead

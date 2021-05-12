@@ -396,7 +396,7 @@ def get_policy_entity_map(api_key, alert_policies):
         'policies_by_entity': policies_by_entity
     }
 
-def get_policy_names_by_entities(entity_names, account_id, api_key, per_api_key, use_local):
+def get_policy_names_by_entities(entity_names, account_id, api_key, use_local):
     names = []
 
     if use_local:
@@ -418,7 +418,7 @@ def get_policy_names_by_entities(entity_names, account_id, api_key, per_api_key,
             if match:
                 entity_type = match.group(1)
                 entity_name = match.group(2)
-            result = ec.get_entity_by_name(api_key, per_api_key, account_id, entity_type, entity_name)
+            result = ec.get_entity_by_name(api_key, account_id, entity_type, entity_name)
             if not result['entityFound']:
                 continue
             entity = result['entity']

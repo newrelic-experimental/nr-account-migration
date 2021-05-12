@@ -8,7 +8,7 @@ import library.utils as utils
 logger = logger.get_logger(os.path.basename(__file__))
 
 
-def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
+def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
     logger.info('loading source app conditions')
     all_app_conditions = ac.get_app_conditions(src_api_key, src_policy['id'])[ac.CONDITIONS]
     logger.info("Found app alert conditions " + str(len(all_app_conditions)))
@@ -31,7 +31,7 @@ def migrate(all_alert_status, per_api_key, policy_name, src_api_key, src_policy,
             if entity_type == ec.APM_KT:
                 result = ec.get_matching_kt(tgt_api_key,src_entity['name'])
             else:
-                result = ec.gql_get_matching_entity(per_api_key, entity_type, src_entity, tgt_acct_id)
+                result = ec.gql_get_matching_entity(tgt_api_key, entity_type, src_entity, tgt_acct_id)
             if not result['entityFound']:
                 status_tgt_not_found(all_alert_status, condition_row, src_entity, app_condition)
                 continue

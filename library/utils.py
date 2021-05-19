@@ -4,6 +4,7 @@ import library.migrationlogger as m_logger
 import library.clients.alertsclient as ac
 import library.clients.entityclient as ec
 import library.localstore as store
+import logging
 import json
 import requests
 import configparser
@@ -15,6 +16,12 @@ NORMAL_PAGINATION = 'normal'
 INFRA_PAGINATION = 'infra'
 logger = m_logger.get_logger(os.path.basename(__file__))
 
+def configure_loglevel(args):
+    log_level = logging.INFO
+    if args.debug:
+        log_level = logging.DEBUG
+        
+    m_logger.set_log_level(log_level)
 
 def setup_headers(api_key):
     return {'Api-Key': api_key, 'Content-Type': 'application/json'}

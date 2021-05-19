@@ -97,31 +97,42 @@ def get_location_failure_conditions(api_key, policy_id):
     return utils.get_paginated_entities(api_key, get_url, LOCATION_FAILURE_CONDITIONS)
 
 
-def get_nrql_conditions(api_key, policy_id):
-    params = {'policy_id': policy_id}
-    return utils.get_paginated_entities(api_key, NRQL_CONDITIONS_URL, NRQL_CONDITIONS, params)
+def get_nrql_conditions(api_key, account_id, policy_id):
+    return ec.get_nrql_conditions(api_key, account_id, policy_id)
 
 
-def nrql_conditions_by_name(api_key, policy_id):
+def nrql_conditions_by_name(api_key, account_id, policy_id):
     conditions_by_name = {}
-    nrql_conditions = get_nrql_conditions(api_key, policy_id)[NRQL_CONDITIONS]
-    for nrql_condition in nrql_conditions:
+    result = get_nrql_conditions(api_key, account_id, policy_id)
+    if result['error']:
+        return {
+            'error': result['error'],
+            'conditions_by_name': None
+        }
+
+    for nrql_condition in result['conditions']:
         conditions_by_name[nrql_condition['name']] = nrql_condition
-    return conditions_by_name
+
+    return {
+        'error': result['error'],
+        'conditions_by_name': conditions_by_name
+    }
 
 
-def create_nrql_condition(api_key, alert_policy, nrql_condition):
-    create_condition_url = CREATE_NRQL_CONDITIONS_URL + str(alert_policy['id']) + '.json'
-    payload = {NRQL_CONDITION: nrql_condition}
-    response = requests.post(create_condition_url, headers=setup_headers(api_key),
-                             data=json.dumps(payload))
-    result = {'status': response.status_code}
-    if response.status_code != 201:
-        if response.text:
-            result['error'] = response.text
-            logger.error("Error creating NRQL condition" + nrql_condition['name'] + " for policy " +
-                         alert_policy['name'] + " : " + str(response.status_code) + " : " + response.text)
-    return result
+def create_nrql_condition(
+    api_key,
+    account_id,
+    policy_id,
+    nrql_condition,
+    nrql_condition_type
+):
+    return ec.create_nrql_condition(
+        api_key,
+        account_id,
+        policy_id,
+        nrql_condition,
+        nrql_condition_type
+)
 
 
 def get_app_conditions(api_key, alert_id):

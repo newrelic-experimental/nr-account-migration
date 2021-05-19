@@ -4,6 +4,7 @@ import os
 import library.migrationlogger as m_logger
 import library.utils as utils
 import collections
+import logging
 
 APM_APP = 'APM_APP'
 APM_KT = 'APM_KT'
@@ -429,6 +430,65 @@ def gql_get_entities_by_type(api_key, entity_type, acct_id = None, tag_name = No
 
     return result
 
+def gql(api_key, payload):
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(json.dumps(payload, indent=2))
+        
+    response = requests.post(GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
+    if response.status_code != 200:
+        logger.error('HTTP error fetching entities: %d: %s' % (
+            response.status_code, response.text()
+        ))
+        return {
+            'error': 'HTTP error fetching entities: %d: %s' % (
+                response.status_code, response.text()
+            ),
+            'status': response.status_code,
+            'data': None
+        }
+
+    content = response.text
+    if not content:
+        return {
+            'error': None,
+            'status': response.status_code,
+            'data': None
+        }
+
+    response_json = response.json()
+
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(json.dumps(response_json, indent=2))
+
+    if 'errors' in response_json:
+        logger.error('GraphQL query error for query: %s' % content)
+        return {
+            'error': 'GraphQL query error for query: %s' % content,
+            'status': response.status_code,
+            'data': None
+        }
+
+    return {
+        'error': None,
+        'status': response.status_code,
+        'data': response_json['data']
+    }
+
+def gql_get_paginated_results(api_key, payload_builder, payload_processor):
+    done = False
+    nextCursor = None
+
+    while not done:
+        gql_result = gql(api_key, payload_builder(nextCursor))
+        if gql_result['error']:
+            return gql_result['error']
+
+        nextCursor = payload_processor(gql_result['data'])
+        if not nextCursor:
+            done = True
+
+    return None
+
 def show_url_for_app(entity_type, app_id):
     if MOBILE_APP == entity_type:
         show_url = SHOW_MOBILE_APP_URL
@@ -802,3 +862,197 @@ def delete_all_dashboards(per_api_key, acct_id):
     for dashboard in result['entities']:
         logger.info('Deleting ' + dashboard['name'])
         delete_dashboard(per_api_key, dashboard['guid'])
+
+def get_nrql_condition_ids_payload(account_id, policy_id, nextCursor = None):
+    cursor = ', cursor: "%s"' % nextCursor if nextCursor else ''
+    nrql_condition_ids_query = '''
+        query($accountId: Int!, $policyId: ID!) { 
+            actor {
+                account(id: $accountId) {
+                    alerts {
+                        nrqlConditionsSearch(searchCriteria: {policyId: $policyId}%s) {
+                            nrqlConditions {
+                                id
+                            }
+                            nextCursor
+                        }
+                    }
+                }
+            }
+        }
+    ''' % cursor
+    
+    logger.debug(nrql_condition_ids_query)
+
+    return {
+        'query': nrql_condition_ids_query,
+        'variables': {
+            'accountId': int(account_id),
+            'policyId': policy_id
+        }
+    }
+
+def get_nrql_condition_ids(api_key, account_id, policy_id):
+    ids = []
+
+    def build_payload(nextCursor):
+        return get_nrql_condition_ids_payload(account_id, policy_id, nextCursor)
+
+    def process_payload(data):
+        search = data['actor']['account']['alerts']['nrqlConditionsSearch']
+        if not search:
+            return None
+
+        if 'nrqlConditions' in search:
+            for condition in search['nrqlConditions']:
+                ids.append(condition['id'])
+
+        return search['nextCursor']
+
+    error = gql_get_paginated_results(api_key, build_payload, process_payload)
+
+    return {
+        'error': error,
+        'condition_ids': ids
+    }
+
+def get_nrql_condition_payload(account_id, condition_id):
+    nrql_condition_query = '''
+        query($accountId: Int!, $conditionId: ID!) { 
+            actor {
+                account(id: $accountId) {
+                    alerts {
+                        nrqlCondition(id: $conditionId) {
+                            description
+                            enabled
+                            expiration {
+                                closeViolationsOnExpiration
+                                expirationDuration
+                                openViolationOnExpiration
+                            }
+                            id
+                            name
+                            nrql {
+                                query
+                            }
+                            policyId
+                            runbookUrl
+                            signal {
+                                aggregationWindow
+                                evaluationOffset
+                                fillOption
+                                fillValue
+                            }
+                            terms {
+                                operator
+                                priority
+                                threshold
+                                thresholdDuration
+                                thresholdOccurrences
+                            }
+                            type
+                            violationTimeLimitSeconds
+                            ... on AlertsNrqlStaticCondition {
+                                valueFunction
+                            }
+                            ... on AlertsNrqlOutlierCondition {
+                                expectedGroups
+                                openViolationOnGroupOverlap
+                            }
+                            ... on AlertsNrqlBaselineCondition {
+                                baselineDirection
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    '''
+
+    logger.debug(nrql_condition_query)
+
+    return {
+        'query': nrql_condition_query,
+        'variables': {
+            'accountId': int(account_id),
+            'conditionId': condition_id
+        }
+    }
+
+def get_nrql_conditions(api_key, account_id, policy_id):
+    condition_ids = get_nrql_condition_ids(api_key, account_id, policy_id)
+    if condition_ids['error']:
+        return {
+            'error': condition_ids['error'],
+            'conditions': None
+        }
+
+    conditions = []
+    for condition_id in condition_ids['condition_ids']:
+        result = gql(
+            api_key,
+            get_nrql_condition_payload(account_id, condition_id)
+        )
+        if result['error']:
+            return {
+                'error': result['error'],
+                'conditions': None
+            }
+
+        nrql_condition = result['data']['actor']['account']['alerts']['nrqlCondition']
+        if nrql_condition:
+            conditions.append(nrql_condition)
+
+    return {
+        'error': None,
+        'conditions': conditions
+    }
+
+def create_nrql_condition(
+    api_key,
+    account_id,
+    policy_id,
+    condition,
+    nrql_condition_type = 'STATIC'
+):
+    schemaType = 'AlertsNrqlConditionStaticInput'
+    mutation = 'alertsNrqlConditionStaticCreate'
+    if nrql_condition_type == 'BASELINE':
+        schemaType = 'AlertsNrqlConditionBaselineInput'
+        mutation = 'alertsNrqlConditionBaselineCreate'
+    elif nrql_condition_type == 'OUTLIER':
+        schemaType = 'AlertsNrqlConditionOutlierInput'
+        mutation = 'alertsNrqlConditionOutlierCreate'
+
+    payload = {
+        'query': '''
+            mutation ($accountId: Int!, $policyId: ID!, $condition: %s!) {
+                %s(accountId: $accountId, policyId: $policyId, condition: $condition) {
+                    id
+                }
+            }
+        ''' % (schemaType, mutation),
+        'variables': {
+            'accountId': int(account_id),
+            'policyId': policy_id,
+            'condition': condition
+        }
+    }
+
+    result = gql(api_key, payload)
+    if result['error']:
+        return {
+            'error': result['error'],
+            'status': result['status'],
+            'condition_id': None
+        }
+
+    return {
+        'error': None,
+        'status': result['status'],
+        'condition_id': result['data'][mutation]['id']
+    }
+
+
+
+

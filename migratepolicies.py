@@ -266,12 +266,20 @@ class MigratePoliciesCommand:
             args
         )
 
-        policy_file_path = config.get('migrate.policies', 'policy_file')
+        policy_file_path = config.get(
+            'migrate.policies',
+            'policy_file',
+            fallback = None
+        )
         if not policy_file_path:
             if args.policy_file:
                 policy_file_path = args.policy_file[0]
 
-        entity_file_path = config.get('migrate.policies', 'entity_file')
+        entity_file_path = config.get(
+            'migrate.policies',
+            'entity_file',
+            fallback = None
+        )
         if not entity_file_path:
             if args.entity_file:
                 entity_file_path = args.entity_file[0]

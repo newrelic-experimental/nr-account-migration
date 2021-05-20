@@ -31,6 +31,13 @@ def create_argument_parser() -> argparse.ArgumentParser:
         default='config.ini',
         help='the config file to use'
     )
+    global_options_parser.add_argument(
+        '-d',
+        '--debug',
+        default=False,
+        action='store_true',
+        help='debug mode'
+    )
 
     # Create the top-level parser
     parser = argparse.ArgumentParser(
@@ -105,6 +112,9 @@ def main():
 
     # Parse the command line
     args = parser.parse_args()
+
+    # Configure logger
+    m_utils.configure_loglevel(args)
 
     # Parse the configuration file
     config = parse_config(args.config)

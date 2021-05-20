@@ -199,7 +199,7 @@ def migrate_conditions(policy_names, src_account_id, src_api_key, tgt_account_id
             ac_migrator.migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_account_id,
                                 tgt_api_key, tgt_policy, match_source_status)
         if NRQL_CONDITIONS in cond_types:
-            nrql_migrator.migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_account_id,
+            nrql_migrator.migrate(all_alert_status, policy_name, src_account_id, src_api_key, src_policy, tgt_account_id,
                                 tgt_api_key, tgt_policy, match_source_status)
         if EXT_SVC_CONDITIONS in cond_types:
             extsvc_migrator.migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_account_id,
@@ -332,12 +332,20 @@ class MigrateConditionsCommand:
             args
         )
 
-        policy_file_path = config.get('migrate.conditions', 'policy_file')
+        policy_file_path = config.get(
+            'migrate.conditions',
+            'policy_file',
+            fallback = None
+        )
         if not policy_file_path:
             if args.policy_file:
                 policy_file_path = args.policy_file[0]
 
-        entity_file_path = config.get('migrate.conditions', 'entity_file')
+        entity_file_path = config.get(
+            'migrate.conditions',
+            'entity_file',
+            fallback = None
+        )
         if not entity_file_path:
             if args.entity_file:
                 entity_file_path = args.entity_file[0]

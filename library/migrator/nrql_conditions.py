@@ -6,9 +6,10 @@ import library.clients.alertsclient as ac
 logger = logger.get_logger(os.path.basename(__file__))
 
 
-def migrate(all_alert_status, policy_name, src_acct_id, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
+def migrate(all_alert_status, policy_name, src_acct_id, src_api_key, src_region, src_policy,
+            tgt_acct_id, tgt_api_key, tgt_region, tgt_policy, match_source_status):
     logger.info('Loading source NRQL conditions ')
-    result = ac.get_nrql_conditions(src_api_key, src_acct_id, src_policy['id'])
+    result = ac.get_nrql_conditions(src_api_key, src_acct_id, src_policy['id'], src_region)
     if result['error']:
         all_alert_status[policy_name][cs.ERROR] = result['error']
         return
@@ -17,7 +18,7 @@ def migrate(all_alert_status, policy_name, src_acct_id, src_api_key, src_policy,
     logger.info('Fetched %d source conditions' % len(nrql_conds))
 
     logger.info('Loading target NRQL conditions')
-    result = ac.nrql_conditions_by_name(tgt_api_key, tgt_acct_id, tgt_policy['id'])
+    result = ac.nrql_conditions_by_name(tgt_api_key, tgt_acct_id, tgt_policy['id'], tgt_region)
     if result['error']:
         all_alert_status[policy_name][cs.ERROR] = result['error']
         return
@@ -36,7 +37,8 @@ def migrate(all_alert_status, policy_name, src_acct_id, src_api_key, src_policy,
             all_alert_status[condition_row][cs.COND_EXISTED_TARGET] = 'N'
             logger.info('Creating target NRQL condition %s' % nrql_condition['name'])
             tgt_condition = create_tgt_nrql_condition(nrql_condition, match_source_status)
-            result = ac.create_nrql_condition(tgt_api_key, tgt_acct_id, tgt_policy['id'], tgt_condition, nrql_condition['type'])
+            result = ac.create_nrql_condition(tgt_api_key, tgt_region, tgt_acct_id, tgt_policy['id'],
+                                              tgt_condition, nrql_condition['type'])
             all_alert_status[condition_row][cs.STATUS] = result['status']
             if 'error' in result.keys(): 
                 all_alert_status[condition_row][cs.ERROR] = result['error']

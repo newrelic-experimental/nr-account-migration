@@ -6,9 +6,9 @@ import library.clients.insightsclient as insightsclient
 from library.status.monitorstatus import SEC_CREDENTIALS
 from library.status.monitorstatus import CHECK_COUNT
 import library.migrationlogger as migrationlogger
+from library.clients.endpoints import Endpoints
 
 logger = migrationlogger.get_logger(os.path.basename(__file__))
-SEC_CREDENTIALS_URL = 'https://synthetics.newrelic.com/synthetics/api/v1/secure-credentials'
 query_secure_credentials_for = "FROM SyntheticCheck SELECT uniques(secureCredentials), count(monitorName) " \
                                "SINCE 7 days ago WHERE monitorName = "
 
@@ -30,13 +30,13 @@ def from_script(script):
 
 # returns set of secureCredentials and number of checks run ,
 # checkCount of 0 indicates monitor hasn't been run in the past week
-def from_insights(insights_query_key, account_id, monitor_name):
+def from_insights(insights_query_key, account_id, monitor_name, region=Endpoints.REGION_US):
     logger.info("Fetching secure credentials for " + monitor_name)
     escaped_monitor_name = escape(monitor_name)
     query = query_secure_credentials_for + "'" + escaped_monitor_name + "'"
     secure_credentials = []
     credentials_and_checks = {SEC_CREDENTIALS: secure_credentials, CHECK_COUNT: 0}
-    result = insightsclient.execute(insights_query_key, account_id, query)
+    result = insightsclient.execute(insights_query_key, account_id, query, region)
     if result['status'] == 200:
         results_json = result['json']
         secure_credentials = results_json['results'][0]['members']
@@ -57,14 +57,14 @@ def escape(monitor_name):
     return monitor_name
 
 
-def create(api_key, scripted_monitors):
+def create(api_key, scripted_monitors, region=Endpoints.REGION_US):
     sec_creds_set = get_unique_credentials(scripted_monitors)
     secure_credential_status = {}
     for secure_cred in sec_creds_set:
         sec_cred_data = {'key': secure_cred, 'value': 'dummy',
                          'description': 'PLEASE UPDATE. Created by migration script.'}
         sec_cred_json_str = json.dumps(sec_cred_data)
-        response = requests.post(SEC_CREDENTIALS_URL, headers=setup_headers(api_key), data=sec_cred_json_str)
+        response = requests.post(Endpoints.of(region).SEC_CREDENTIALS_URL, headers=setup_headers(api_key), data=sec_cred_json_str)
         status = {'sec_cred_status': response.status_code}
         if response.text:
             status['body'] = response.text
@@ -83,13 +83,13 @@ def get_unique_credentials(scripted_monitors):
     return secure_credentials_set
 
 
-def delete_all(api_key, account_id):
+def delete_all(api_key, account_id, region):
     logger.warn('Deleting all secure credentials for ' + account_id)
-    result = requests.get(SEC_CREDENTIALS_URL, headers=setup_headers(api_key))
+    result = requests.get(Endpoints.of(region).SEC_CREDENTIALS_URL, headers=setup_headers(api_key))
     if result.status_code == 200:
         response_json = result.json()
         sec_creds = response_json['secureCredentials']
         for sec_cred in sec_creds:
             logger.info('Deleting ' + sec_cred['key'])
-            result = requests.delete(SEC_CREDENTIALS_URL + '/' + sec_cred['key'], headers=setup_headers(api_key))
+            result = requests.delete(Endpoints.of(region).SEC_CREDENTIALS_URL + '/' + sec_cred['key'], headers=setup_headers(api_key))
             logger.info('Delete status ' + str(result.status_code))

@@ -23,11 +23,13 @@ EXT_SVC_CONDITIONS = 'ext-svc-conditions'
 INFRA_CONDITIONS = 'infra-conditions'
 ALL_CONDITIONS = [SYNTHETICS, APP_CONDITIONS, NRQL_CONDITIONS, EXT_SVC_CONDITIONS, INFRA_CONDITIONS]  # currently used only for testing
 
+
 def create_argument_parser():
     parser = argparse.ArgumentParser(
         description='Migrate Alert Conditions from source to target policy'
     )
     return configure_parser(parser)
+
 
 def configure_parser(
     parser: argparse.ArgumentParser,
@@ -61,6 +63,15 @@ def configure_parser(
         dest='source_account_id'
     )
     parser.add_argument(
+        '--sourceRegion',
+        '--source_region',
+        nargs=1,
+        type=str,
+        required=is_standalone,
+        help='Source Account Region us(default) or eu',
+        dest='source_region'
+    )
+    parser.add_argument(
         '--sourceApiKey',
         '--source_api_key',
         nargs=1,
@@ -79,6 +90,15 @@ def configure_parser(
         dest='target_account_id'
     )
     parser.add_argument(
+        '--targetRegion',
+        '--target_region',
+        nargs=1,
+        type=str,
+        required=is_standalone,
+        help='Target Account Region us(default) or eu',
+        dest='target_region'
+    )
+    parser.add_argument(
         '--targetApiKey',
         '--target_api_key',
         nargs=1,
@@ -93,7 +113,8 @@ def configure_parser(
         dest='match_source_state',
         required=False,
         action='store_true',
-        help='Pass --matchSourceState to match condition enable/disable state from source account instead of disabling in target account'
+        help='Pass --matchSourceState to match condition enable/disable state from source account instead of disabling '
+             'in target account'
     )
     parser.add_argument(
         '--synthetics',
@@ -147,14 +168,23 @@ def configure_parser(
     )
     return parser
 
-def print_args(src_api_key, tgt_api_key):
+
+def print_args(args, src_api_key, src_region, tgt_api_key, tgt_region):
     if (args.policy_file):
         logger.info("Using fromFile : " + args.policy_file[0])
     if (args.entity_file):
         logger.info("Using fromFileEntities : " + args.entity_file[0])
     logger.info("Using sourceAccount : " + args.source_account_id[0])
+    if args.sourceRegion and len(args.sourceRegion) > 0:
+        logger.info("sourceRegion : " + args.sourceRegion[0])
+    else:
+        logger.info("sourceRegion not passed : Defaulting to " + src_region)
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*"+src_api_key[-4:])
     logger.info("Using targetAccount : " + args.target_account_id[0])
+    if args.targetRegion and len(args.targetRegion) > 0:
+        logger.info("targetRegion : " + args.targetRegion[0])
+    else:
+        logger.info("targetRegion not passed : Defaulting to " + tgt_region)
     logger.info("Using targetApiKey : " + len(tgt_api_key[:-4]) * "*" + tgt_api_key[-4:])
     if args.match_source_state:
         logger.info("Matching condition enable/disable state in target account instead of disabling all new conditions")
@@ -173,41 +203,45 @@ def print_args(src_api_key, tgt_api_key):
     if args.use_local:
         logger.info("Using local copy of alert policies and policy entity map")
 
-def migrate_conditions(policy_names, src_account_id, src_api_key, tgt_account_id, tgt_api_key, cond_types, match_source_status):
+
+def migrate_conditions(policy_names, src_account_id, src_region, src_api_key,
+                       tgt_account_id, tgt_region, tgt_api_key, cond_types,
+                       match_source_status):
     all_alert_status = {}
     for policy_name in policy_names:
         logger.info('Migrating conditions for policy ' + policy_name)
         all_alert_status[policy_name] = {}
-        src_result = ac.get_policy(src_api_key, policy_name)
+        src_result = ac.get_policy(src_api_key, policy_name, src_region)
         if not src_result['policyFound']:
             logger.error("Skipping as policy not found in source account " + policy_name)
             all_alert_status[policy_name][cs.ERROR] = 'Policy not found in source account'
             continue
         src_policy = src_result['policy']
-        tgt_result = ac.get_policy(tgt_api_key, policy_name)
+        tgt_result = ac.get_policy(tgt_api_key, policy_name, tgt_region)
         if not tgt_result['policyFound']:
             logger.error("Skipping as policy not found in target account " + policy_name)
             all_alert_status[policy_name][cs.ERROR] = 'Policy not found in target account'
             continue
         tgt_policy = tgt_result['policy']
         if SYNTHETICS in cond_types:
-            sc_migrator.migrate(all_alert_status, policy_name, src_api_key, src_policy,
-                                tgt_account_id, tgt_api_key, tgt_policy, match_source_status)
-            lfc_migrator.migrate(all_alert_status, policy_name, src_api_key, src_policy,
-                                 tgt_account_id, tgt_api_key, tgt_policy, match_source_status)
+            sc_migrator.migrate(all_alert_status, policy_name, src_api_key, src_region, src_policy,
+                                tgt_account_id, tgt_api_key, tgt_region, tgt_policy, match_source_status)
+            lfc_migrator.migrate(all_alert_status, policy_name, src_api_key, src_region, src_policy,
+                                 tgt_account_id, tgt_api_key, tgt_region, tgt_policy, match_source_status)
         if APP_CONDITIONS in cond_types:
-            ac_migrator.migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_account_id,
-                                tgt_api_key, tgt_policy, match_source_status)
+            ac_migrator.migrate(all_alert_status, policy_name, src_api_key, src_region, src_policy,
+                                tgt_account_id, tgt_api_key, tgt_region, tgt_policy, match_source_status)
         if NRQL_CONDITIONS in cond_types:
-            nrql_migrator.migrate(all_alert_status, policy_name, src_account_id, src_api_key, src_policy, tgt_account_id,
-                                tgt_api_key, tgt_policy, match_source_status)
+            nrql_migrator.migrate(all_alert_status, policy_name, src_account_id, src_api_key, src_region, src_policy,
+                                  tgt_account_id, tgt_api_key, tgt_region, tgt_policy, match_source_status)
         if EXT_SVC_CONDITIONS in cond_types:
-            extsvc_migrator.migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_account_id,
-                                  tgt_api_key, tgt_policy, match_source_status)
+            extsvc_migrator.migrate(all_alert_status, policy_name, src_api_key, src_region, src_policy,
+                                    tgt_account_id, tgt_api_key, tgt_region, tgt_policy, match_source_status)
         if INFRA_CONDITIONS in cond_types:
-            infra_migrator.migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_account_id, 
-                                tgt_api_key, tgt_policy, match_source_status)
+            infra_migrator.migrate(all_alert_status, policy_name, src_api_key, src_region, src_policy,
+                                   tgt_account_id,  tgt_api_key, tgt_region, tgt_policy, match_source_status)
     return all_alert_status
+
 
 def parse_condition_types(args):
     if args.all:
@@ -226,6 +260,7 @@ def parse_condition_types(args):
         condition_types.append(INFRA_CONDITIONS)
     return condition_types
 
+
 def parse_condition_types_with_config(
     config: configparser.ConfigParser,
     args: argparse.Namespace
@@ -233,7 +268,7 @@ def parse_condition_types_with_config(
     if config.getboolean(
         'migrate.conditions',
         'all',
-        fallback = args.all
+        fallback=args.all
     ):
         return ALL_CONDITIONS
 
@@ -241,25 +276,25 @@ def parse_condition_types_with_config(
     if config.getboolean(
         'migrate.conditions',
         'synthetics',
-        fallback = args.synthetics
+        fallback=args.synthetics
     ):
         condition_types.append(SYNTHETICS)
     if config.getboolean(
         'migrate.conditions',
         'app_conditions',
-        fallback = args.app_conditions
+        fallback=args.app_conditions
     ):
         condition_types.append(APP_CONDITIONS)
     if config.getboolean(
         'migrate.conditions',
         'nrql_conditions',
-        fallback = args.nrql_conditions
+        fallback=args.nrql_conditions
     ):
         condition_types.append(NRQL_CONDITIONS)
     if config.getboolean(
         'migrate.conditions',
         'ext_svc_conditions',
-        fallback = args.ext_svc_conditions
+        fallback=args.ext_svc_conditions
     ):
         condition_types.append(EXT_SVC_CONDITIONS)
     if config.getboolean(
@@ -276,7 +311,9 @@ def migrate(
     policy_file_path: str,
     entity_file_path: str,
     source_acct_id: int,
+    source_region: str,
     target_acct_id: int,
+    target_region: str,
     source_api_key: str,
     target_api_key: str,
     cond_types: List[str],
@@ -287,6 +324,7 @@ def migrate(
         policy_file_path,
         entity_file_path,
         source_acct_id,
+        source_region,
         source_api_key,
         use_local
     )
@@ -294,8 +332,10 @@ def migrate(
     status = migrate_conditions(
         policy_names,
         source_acct_id,
+        source_region,
         source_api_key,
         target_acct_id,
+        target_region,
         target_api_key,
         cond_types,
         match_source_state
@@ -310,6 +350,7 @@ def migrate(
     store.save_status_csv(status_file, status, cs)
 
     return status_file
+
 
 class MigrateConditionsCommand:
     def configure_parser(self, migrate_subparsers, global_options_parser):
@@ -335,7 +376,7 @@ class MigrateConditionsCommand:
         policy_file_path = config.get(
             'migrate.conditions',
             'policy_file',
-            fallback = None
+            fallback=None
         )
         if not policy_file_path:
             if args.policy_file:
@@ -344,7 +385,7 @@ class MigrateConditionsCommand:
         entity_file_path = config.get(
             'migrate.conditions',
             'entity_file',
-            fallback = None
+            fallback=None
         )
         if not entity_file_path:
             if args.entity_file:
@@ -358,12 +399,12 @@ class MigrateConditionsCommand:
         use_local = config.getboolean(
             'migrate.conditions',
             'use_local',
-            fallback = args.use_local
+            fallback=args.use_local
         )
         match_source_state = config.getboolean(
             'migrate.conditions',
             'match_source_state',
-            fallback = args.match_source_state
+            fallback=args.match_source_state
         )
 
         cond_types = parse_condition_types_with_config(config, args)
@@ -376,7 +417,9 @@ class MigrateConditionsCommand:
             policy_file_path,
             entity_file_path,
             base_config['source_account_id'],
+            base_config['source_region'],
             base_config['target_account_id'],
+            base_config['target_region'],
             base_config['source_api_key'],
             base_config['target_api_key'],
             cond_types,
@@ -386,19 +429,17 @@ class MigrateConditionsCommand:
         
         logger.info('Completed alert condition migration.')
 
-if __name__ == '__main__':
+
+def main():
     parser = create_argument_parser()
-
     args = parser.parse_args()
-
-    source_api_key = utils.ensure_source_api_key(args)
-    if not source_api_key:
+    src_api_key = utils.ensure_source_api_key(args)
+    if not src_api_key:
         utils.error_and_exit('source_api_key', 'ENV_SOURCE_API_KEY')
-
-    target_api_key = utils.ensure_target_api_key(args)
-    if not target_api_key:
+    tgt_api_key = utils.ensure_target_api_key(args)
+    if not tgt_api_key:
         utils.error_and_exit('target_api_key', 'ENV_TARGET_API_KEY')
-    
+
     cond_types = parse_condition_types(args)
     if len(cond_types) == 0:
         logger.error('At least one condition type must be specified currently supported ' +
@@ -410,17 +451,23 @@ if __name__ == '__main__':
     if not policy_file and not entity_file:
         logger.error('Either a policy file or entity file must be specified.')
         sys.exit()
-
-    print_args(source_api_key, target_api_key)
-
+    src_region = utils.ensure_source_region(args)
+    tgt_region = utils.ensure_target_region(args)
+    print_args(src_api_key, src_region, tgt_api_key, tgt_region)
     migrate(
         policy_file,
         entity_file,
         args.source_account_id[0],
+        src_region,
         args.target_account_id[0],
-        source_api_key,
-        target_api_key,
+        tgt_region,
+        src_api_key,
+        tgt_api_key,
         cond_types,
         args.use_local,
         args.match_source_state
     )
+
+
+if __name__ == '__main__':
+    main()

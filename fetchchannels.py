@@ -5,6 +5,7 @@ import time
 import library.localstore as store
 import library.migrationlogger as migrationlogger
 import library.clients.alertsclient as ac
+import library.utils as utils
 
 
 logger = migrationlogger.get_logger(os.path.basename(__file__))
@@ -16,11 +17,16 @@ def setup_params():
     parser.add_argument('--sourceAccount', type=str, nargs=1, required=True, help='Source accountId to store the alerts')
     parser.add_argument('--sourceApiKey', type=str, nargs=1, required=False, help='Source API Key or \
     set env var ENV_SOURCE_API_KEY')
+    parser.add_argument('--region', type=str, nargs=1, required=False, help='region us(default) or eu')
 
 
-def print_params():
+def print_params(args, source_api_key, region):
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     logger.info("Using sourceApiKey : " + len(source_api_key[:-4]) * "*" + source_api_key[-4:])
+    if args.region and len(args.region) > 0:
+        logger.info("region : " + args.region[0])
+    else:
+        logger.info("region not passed : Defaulting to " + region)
 
 
 def setup_headers(api_key):
@@ -48,8 +54,8 @@ def validate_keys():
 #        alert_policy_id: [channel_id]
 # }
 # links": { "policy_ids": [] }
-def get_channels_by_id_policy(api_key):
-    src_channels = ac.get_channels(api_key)
+def get_channels_by_id_policy(api_key, region):
+    src_channels = ac.get_channels(api_key, region)
     channels = {"channels_by_id": {}, "channels_by_policy_id": {}}
     for channel in src_channels[ac.CHANNELS]:
         channel_id = str(channel['id'])
@@ -63,19 +69,24 @@ def get_channels_by_id_policy(api_key):
     return channels
 
 
-def fetch_alert_channels(api_key, account_id):
-    all_channels = get_channels_by_id_policy(api_key)
+def fetch_alert_channels(api_key, account_id, region):
+    all_channels = get_channels_by_id_policy(api_key, region)
     store.save_alert_channels(account_id, all_channels)
 
 
-if __name__ == '__main__':
+def main():
     start_time = time.time()
     setup_params()
     args = parser.parse_args()
     args_api_key = ''
     if args.sourceApiKey:
         args_api_key = args.sourceApiKey[0]
+    region = utils.ensure_region(args)
     setup_headers(args_api_key)
-    print_params()
-    fetch_alert_channels(args_api_key, args.sourceAccount[0])
+    print_params(args, source_api_key, region)
+    fetch_alert_channels(args_api_key, args.sourceAccount[0], region)
     logger.info("Time taken : " + str(time.time() - start_time) + "seconds")
+
+
+if __name__ == '__main__':
+    main()

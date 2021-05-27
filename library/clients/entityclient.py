@@ -2,9 +2,9 @@ import requests
 import json
 import os
 import library.migrationlogger as m_logger
-import library.utils as utils
 import collections
 import logging
+from library.clients.endpoints import Endpoints
 
 APM_APP = 'APM_APP'
 APM_KT = 'APM_KT'
@@ -29,21 +29,10 @@ ent_type_lookup[DASHBOARD] = 'DASHBOARD_ENTITY'
 ent_type_lookup[INFRA_HOST] = 'INFRASTRUCTURE_HOST_ENTITY'
 ent_type_lookup[INFRA_INT] = 'GENERIC_INFRASTRUCTURE_ENTITY'
 ent_type_lookup[INFRA_LAMBDA] = 'INFRASTRUCTURE_AWS_LAMBDA_FUNCTION_ENTITY'
-
-
-GRAPHQL_URL = 'https://api.newrelic.com/graphql'
-SHOW_APM_APP_URL = 'https://api.newrelic.com/v2/applications/'
-GET_APM_APP_URL = 'https://api.newrelic.com/v2/applications.json'
-GET_BROWSER_APP_URL = 'https://api.newrelic.com/v2/browser_applications.json'
-SHOW_MOBILE_APP_URL = 'https://api.newrelic.com/v2/mobile_applications/'
-SHOW_APM_KT_URL = 'https://api.newrelic.com/v2/key_transactions/'
-GET_APM_KT_URL = 'https://api.newrelic.com/v2/key_transactions.json'
 KEY_TRANSACTIONS = 'key_transactions'
-PUT_LABEL_URL = 'https://api.newrelic.com/v2/labels.json'
-GET_DASHBOARDS_URL = 'https://api.newrelic.com/v2/dashboards.json'
 DASHBOARDS = 'dashboards'
-SHOW_DASHBOARDS_URL = 'https://api.newrelic.com/v2/dashboards/'
-DEL_DASHBOARDS_URL = 'https://api.newrelic.com/v2/dashboards/'
+
+DEFAULT_REGION = Endpoints.REGION_US
 
 logger = m_logger.get_logger(os.path.basename(__file__))
 
@@ -240,7 +229,6 @@ def matched_browser_app(entity, tgt_account_id, src_entity):
     return matched
 
 
-
 def matched_entity_name(entity_type, entity, tgt_account_id, name):
     matched = False
     if entity['entityType'] == ent_type_lookup[entity_type] and \
@@ -249,10 +237,12 @@ def matched_entity_name(entity_type, entity, tgt_account_id, name):
             matched = True
     return matched
 
-def get_matching_kt(tgt_api_key, kt_name):
+
+def get_matching_kt(tgt_api_key, kt_name, region):
     filter_params = {'filter[name]': kt_name}
     result = {'entityFound': False}
-    response = requests.get(GET_APM_KT_URL, headers=rest_api_headers(tgt_api_key), params=filter_params)
+    response = requests.get(Endpoints.of(region).GET_APM_KT_URL, headers=rest_api_headers(tgt_api_key),
+                            params=filter_params)
     result['status'] = response.status_code
     if response.text:
         response_json = response.json()
@@ -268,11 +258,11 @@ def extract_entities(gql_rsp_json):
     return list(filter(None, rsp_entities))  # remove empty dicts from list
 
 
-def gql_get_matching_entity(api_key, entity_type, src_entity, tgt_account_id):
+def gql_get_matching_entity(api_key, entity_type, src_entity, tgt_account_id, region=DEFAULT_REGION):
     logger.info('looking for matching entity ' + src_entity['name'] + ' in account ' + tgt_account_id)
     payload = search_query_payload(entity_type, src_entity['name'], tgt_account_id)
     result = {'entityFound': False}
-    response = requests.post(GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
+    response = requests.post(Endpoints.of(region).GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
     result['status'] = response.status_code
     if response.text:
         response_json = response.json()
@@ -307,11 +297,11 @@ def set_matched_entity(entities, entity_type, result, src_entity, tgt_account_id
             break
 
 
-def gql_get_matching_entity_by_name(api_key, entity_type, name, tgt_acct_id):
+def gql_get_matching_entity_by_name(api_key, entity_type, name, tgt_acct_id, region=DEFAULT_REGION):
     logger.info('Searching matching entity for type:' + entity_type + ', name:' + name + ', acct:' + str(tgt_acct_id))
     payload = search_query_payload(entity_type, name, tgt_acct_id)
     result = {'entityFound': False}
-    response = requests.post(GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
+    response = requests.post(Endpoints.of(region).GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
     result['status'] = response.status_code
     if response.text:
         response_json = response.json()
@@ -376,9 +366,12 @@ def get_entities_payload(entity_type, acct_id = None, nextCursor = None, tag_nam
     payload = {'query': entity_search_query, 'variables': variables}
     return payload
 
-def gql_get_entities_by_type(api_key, entity_type, acct_id = None, tag_name = None, tag_value = None):
-    logger.info('Searching for entities by type:' + entity_type + ', acct:' + str(acct_id or 'not provided') + ', tag name: ' + str(tag_name or 'not provided') + ', tag value: ' + str(tag_value or 'not provided'))
-    
+
+def gql_get_entities_by_type(api_key, entity_type, acct_id=None, tag_name=None, tag_value=None, region=DEFAULT_REGION):
+    logger.info('Searching for entities by type:' + entity_type + ', acct:' + str(acct_id or 'not provided') +
+                ', tag name: ' + str(tag_name or 'not provided') + ', tag value: ' + str(tag_value or 'not provided') +
+                ', region: ' + region)
+    logger.info('Will use GRAPHQL_URL : ' + Endpoints.of(region).GRAPHQL_URL)
     done = False
     nextCursor = None
     count = 0
@@ -389,7 +382,7 @@ def gql_get_entities_by_type(api_key, entity_type, acct_id = None, tag_name = No
     while not done:
         payload = get_entities_payload(entity_type, acct_id, nextCursor, tag_name, tag_value)
 
-        response = requests.post(GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
+        response = requests.post(Endpoints.of(region).GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
         if response.status_code != 200:
             done = True
             if response.text:
@@ -401,7 +394,7 @@ def gql_get_entities_by_type(api_key, entity_type, acct_id = None, tag_name = No
         if not response.text:
             done = True
             break
-
+        logger.info(response.text)
         response_json = response.json()
         if 'errors' in response_json:
             done = True
@@ -430,11 +423,12 @@ def gql_get_entities_by_type(api_key, entity_type, acct_id = None, tag_name = No
 
     return result
 
-def gql(api_key, payload):
+
+def gql(api_key, payload, region=DEFAULT_REGION):
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(json.dumps(payload, indent=2))
         
-    response = requests.post(GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
+    response = requests.post(Endpoints.of(region).GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
     if response.status_code != 200:
         logger.error('HTTP error fetching entities: %d: %s' % (
             response.status_code, response.text()
@@ -474,34 +468,33 @@ def gql(api_key, payload):
         'data': response_json['data']
     }
 
-def gql_get_paginated_results(api_key, payload_builder, payload_processor):
+
+def gql_get_paginated_results(api_key, payload_builder, payload_processor, region):
     done = False
     nextCursor = None
-
     while not done:
-        gql_result = gql(api_key, payload_builder(nextCursor))
+        gql_result = gql(api_key, payload_builder(nextCursor), region)
         if gql_result['error']:
             return gql_result['error']
-
         nextCursor = payload_processor(gql_result['data'])
         if not nextCursor:
             done = True
-
     return None
 
-def show_url_for_app(entity_type, app_id):
+
+def show_url_for_app(entity_type, app_id, region=Endpoints.REGION_US):
     if MOBILE_APP == entity_type:
-        show_url = SHOW_MOBILE_APP_URL
+        show_url = Endpoints.of(region).SHOW_MOBILE_APP_URL
     if APM_APP == entity_type:
-        show_url = SHOW_APM_APP_URL
+        show_url = Endpoints.of(region).SHOW_APM_APP_URL
     if show_url:
         return show_url + app_id + '.json'
     logger.error('Only supported for ' + MOBILE_APP + ' and ' + APM_APP)
 
 
-def get_app_entity(api_key, entity_type, app_id):
+def get_app_entity(api_key, entity_type, app_id, region=Endpoints.REGION_US):
     result = {'entityFound': False}
-    get_url = show_url_for_app(entity_type, app_id)
+    get_url = show_url_for_app(entity_type, app_id, region)
     response = requests.get(get_url, headers=rest_api_headers(api_key))
     result['status'] = response.status_code
     if response.status_code != 200:
@@ -514,10 +507,10 @@ def get_app_entity(api_key, entity_type, app_id):
     return result
 
 
-def get_apm_entity_by_name(api_key, app_name):
+def get_apm_entity_by_name(api_key, app_name, region=Endpoints.REGION_US):
     params = {'filter[name]': app_name}
     result = {'entityFound': False}
-    response = requests.get(GET_APM_APP_URL, headers=rest_api_headers(api_key), params=params)
+    response = requests.get(Endpoints.of(region).GET_APM_APP_URL, headers=rest_api_headers(api_key), params=params)
     result['status'] = response.status_code
     if response.status_code != 200:
         if response.text:
@@ -534,10 +527,10 @@ def get_apm_entity_by_name(api_key, app_name):
     return result
 
 
-def get_browser_entity(api_key, app_id):
+def get_browser_entity(api_key, app_id, region=Endpoints.REGION_US):
     params = {'filter[ids]': [app_id]}
     result = {'entityFound': False}
-    get_url = GET_BROWSER_APP_URL
+    get_url = Endpoints.of(region).GET_BROWSER_APP_URL
     response = requests.get(get_url, headers=rest_api_headers(api_key), params=params)
     logger.info(response.url)
     result['status'] = response.status_code
@@ -558,9 +551,9 @@ def get_browser_entity(api_key, app_id):
     return result
 
 
-def get_apm_kt(api_key, kt_id):
+def get_apm_kt(api_key, kt_id, region=Endpoints.REGION_US):
     result = {'entityFound': False}
-    get_url = SHOW_APM_KT_URL + kt_id + '.json'
+    get_url = Endpoints.of(region).SHOW_APM_KT_URL + kt_id + '.json'
     response = requests.get(get_url, headers=rest_api_headers(api_key))
     result['status'] = response.status_code
     if response.status_code != 200:
@@ -573,30 +566,33 @@ def get_apm_kt(api_key, kt_id):
     return result
 
 
-def get_entity(api_key, entity_type, entity_id):
+def get_entity(api_key, entity_type, entity_id, region=Endpoints.REGION_US):
     if entity_type in [APM_APP, MOBILE_APP]:
-        return get_app_entity(api_key, entity_type, entity_id)
+        return get_app_entity(api_key, entity_type, entity_id, region)
     if entity_type == BROWSER_APP:
-        return get_browser_entity(api_key, entity_id)
+        return get_browser_entity(api_key, entity_id, region)
     if entity_type == APM_KT:
-        return get_apm_kt(api_key, entity_id)
+        return get_apm_kt(api_key, entity_id, region)
     logger.warn('Skipping non APM entities ' + entity_type)
     return {'entityFound':  False}
 
-def get_entity_by_name(api_key, acct_id, entity_type, entity_name):
+
+def get_entity_by_name(api_key, acct_id, entity_type, entity_name, region=Endpoints.REGION_US):
     logger.info('Searching matching entity for type:' + entity_type + ', name:' + entity_name + ', acct:' + str(acct_id))
 
     if entity_type == APM_KT:
-        return get_matching_kt(api_key, entity_name)
+        return get_matching_kt(api_key, entity_name, region)
 
     return gql_get_matching_entity_by_name(api_key, entity_type, entity_name, acct_id)
     
+
 # didn't end up using this as it was returning 500 errors sporadically in my test account
 # see gql_mutate_add_tag instead
-def put_apm_label(api_key, category, name, applications):
+def put_apm_label(api_key, category, name, applications, region=Endpoints.REGION_US):
     label_payload = {'label': {'category': category, 'name': name, 'links': {'applications': applications}}}
     result = {}
-    response = requests.put(PUT_LABEL_URL, headers=rest_api_headers(api_key), data=json.dumps(label_payload))
+    response = requests.put(Endpoints.of(region).PUT_LABEL_URL, headers=rest_api_headers(api_key),
+                            data=json.dumps(label_payload))
     result['status'] = response.status_code
     if response.status_code in [200, 204] and response.text:
         result['label'] = response.json()['label']
@@ -605,7 +601,7 @@ def put_apm_label(api_key, category, name, applications):
     return result
 
 
-def put_apm_settings(api_key, app_id, app_settings):
+def put_apm_settings(api_key, app_id, app_settings, region=Endpoints.REGION_US):
     logger.debug(app_settings)
     updated_settings = {
           "application": {
@@ -617,7 +613,7 @@ def put_apm_settings(api_key, app_id, app_settings):
           }
         }
     result = {}
-    update_app_url = SHOW_APM_APP_URL + str(app_id) + '.json'
+    update_app_url = Endpoints.of(region).SHOW_APM_APP_URL + str(app_id) + '.json'
     response = requests.put(update_app_url, headers=rest_api_headers(api_key), data=json.dumps(updated_settings))
     result['status'] = response.status_code
     if response.status_code in [200, 204] and response.text:
@@ -625,6 +621,7 @@ def put_apm_settings(api_key, app_id, app_settings):
     elif response.text:
         result['error'] = response.text
     return result
+
 
 # Input: tags from source and target entities
 # Output: array of tags that need to be applied on target entity
@@ -662,10 +659,10 @@ def replace_tags_payload(entity_guid, arr_tags):
     return mutate_tags_payload(entity_guid, arr_tags, 'taggingReplaceTagsOnEntity')
 
 
-def gql_mutate_add_tags(per_api_key, entity_guid, arr_tags):
+def gql_mutate_add_tags(per_api_key, entity_guid, arr_tags, region=DEFAULT_REGION):
     payload = apply_tags_payload(entity_guid, arr_tags)
     result = {}
-    response = requests.post(GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
+    response = requests.post(Endpoints.of(region).GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
     result['status'] = response.status_code
     if response.text:
         response_json = response.json()
@@ -678,10 +675,10 @@ def gql_mutate_add_tags(per_api_key, entity_guid, arr_tags):
     return result
 
 
-def gql_mutate_replace_tags(per_api_key, entity_guid, tags):
+def gql_mutate_replace_tags(per_api_key, entity_guid, tags, region=DEFAULT_REGION):
     payload = replace_tags_payload(entity_guid, tags)
     result = {}
-    response = requests.post(GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
+    response = requests.post(Endpoints.of(region).GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
     result['status'] = response.status_code
     if response.text:
         response_json = response.json()
@@ -694,11 +691,10 @@ def gql_mutate_replace_tags(per_api_key, entity_guid, tags):
     return result
 
 
-def get_dashboard_definition(per_api_key, name, acct_id):
-    result = gql_get_matching_entity_by_name(per_api_key, DASHBOARD, name, acct_id)
+def get_dashboard_definition(per_api_key, name, acct_id, region=Endpoints.REGION_US):
+    result = gql_get_matching_entity_by_name(per_api_key, DASHBOARD, name, acct_id, region)
     if not result['entityFound']:
         return None
-
     return result['entity']
 
 def dashboard_query_payload(dashboard_guid):
@@ -728,10 +724,11 @@ def dashboard_query_payload(dashboard_guid):
     payload = {'query': dashboard_query, 'variables': variables}
     return payload
 
-def get_dashboard_widgets(per_api_key, dashboard_guid):
+
+def get_dashboard_widgets(per_api_key, dashboard_guid, region=DEFAULT_REGION):
     result = {'entityFound': False}
     payload = dashboard_query_payload(dashboard_guid)
-    response = requests.post(GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
+    response = requests.post(Endpoints.of(region).GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
     result['status'] = response.status_code
     if response.status_code != 200:
         if response.text:
@@ -770,9 +767,10 @@ def create_dashboard_payload(acct_id, dashboard):
     payload = {'query': create_dashboard_query, 'variables': variables}
     return payload
 
-def post_dashboard(per_api_key, dashboard, acct_id):
+
+def post_dashboard(per_api_key, dashboard, acct_id, region=DEFAULT_REGION):
     payload = create_dashboard_payload(acct_id, dashboard)
-    response = requests.post(GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
+    response = requests.post(Endpoints.of(region).GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
     result = {'status': response.status_code}
 
     if response.status_code != 200 and response.status_code != 201:
@@ -811,9 +809,10 @@ def delete_dashboard_payload(guid):
     payload = {'query': delete_dashboard_query, 'variables': variables}
     return payload
 
-def delete_dashboard(per_api_key, guid):
+
+def delete_dashboard(per_api_key, guid, region=DEFAULT_REGION):
     payload = delete_dashboard_payload(guid)
-    response = requests.post(GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
+    response = requests.post(Endpoints.of(region).GRAPHQL_URL, headers=gql_headers(per_api_key), data=json.dumps(payload))
     result = {'status': response.status_code}
 
     if response.status_code != 200:
@@ -838,6 +837,7 @@ def delete_dashboard(per_api_key, guid):
     
     return result
 
+
 def delete_dashboards(per_api_key, dashboard_names, acct_id):
     for dashboard_name in dashboard_names:
         result = get_dashboard_definition(per_api_key, dashboard_name, acct_id)
@@ -845,23 +845,20 @@ def delete_dashboards(per_api_key, dashboard_names, acct_id):
             delete_dashboard(per_api_key, result['guid'])
 
 
-def delete_all_dashboards(per_api_key, acct_id):
-    result = gql_get_entities_by_type(per_api_key, DASHBOARD, acct_id)
+def delete_all_dashboards(per_api_key, acct_id, region):
+    result = gql_get_entities_by_type(per_api_key, DASHBOARD, acct_id, None, None, region)
     if 'error' in result:
         logger.error('Error : ' + result['error'])
         return
-
     count = result['count']
-
     if count <= 0:
         logger.info('No dashboards to delete')
         return
-
     logger.info('Deleting ' + str(count) + ' dashboards')
-
     for dashboard in result['entities']:
         logger.info('Deleting ' + dashboard['name'])
-        delete_dashboard(per_api_key, dashboard['guid'])
+        delete_dashboard(per_api_key, dashboard['guid'], region)
+
 
 def get_nrql_condition_ids_payload(account_id, policy_id, nextCursor = None):
     cursor = ', cursor: "%s"' % nextCursor if nextCursor else ''
@@ -892,7 +889,8 @@ def get_nrql_condition_ids_payload(account_id, policy_id, nextCursor = None):
         }
     }
 
-def get_nrql_condition_ids(api_key, account_id, policy_id):
+
+def get_nrql_condition_ids(api_key, account_id, policy_id, region):
     ids = []
 
     def build_payload(nextCursor):
@@ -902,19 +900,17 @@ def get_nrql_condition_ids(api_key, account_id, policy_id):
         search = data['actor']['account']['alerts']['nrqlConditionsSearch']
         if not search:
             return None
-
         if 'nrqlConditions' in search:
             for condition in search['nrqlConditions']:
                 ids.append(condition['id'])
-
         return search['nextCursor']
-
-    error = gql_get_paginated_results(api_key, build_payload, process_payload)
+    error = gql_get_paginated_results(api_key, build_payload, process_payload, region)
 
     return {
         'error': error,
         'condition_ids': ids
     }
+
 
 def get_nrql_condition_payload(account_id, condition_id):
     nrql_condition_query = '''
@@ -979,8 +975,9 @@ def get_nrql_condition_payload(account_id, condition_id):
         }
     }
 
-def get_nrql_conditions(api_key, account_id, policy_id):
-    condition_ids = get_nrql_condition_ids(api_key, account_id, policy_id)
+
+def get_nrql_conditions(api_key, account_id, policy_id, region):
+    condition_ids = get_nrql_condition_ids(api_key, account_id, policy_id, region)
     if condition_ids['error']:
         return {
             'error': condition_ids['error'],
@@ -991,7 +988,8 @@ def get_nrql_conditions(api_key, account_id, policy_id):
     for condition_id in condition_ids['condition_ids']:
         result = gql(
             api_key,
-            get_nrql_condition_payload(account_id, condition_id)
+            get_nrql_condition_payload(account_id, condition_id),
+            region
         )
         if result['error']:
             return {
@@ -1008,8 +1006,10 @@ def get_nrql_conditions(api_key, account_id, policy_id):
         'conditions': conditions
     }
 
+
 def create_nrql_condition(
     api_key,
+    region,
     account_id,
     policy_id,
     condition,
@@ -1039,7 +1039,7 @@ def create_nrql_condition(
         }
     }
 
-    result = gql(api_key, payload)
+    result = gql(api_key, payload, region)
     if result['error']:
         return {
             'error': result['error'],
@@ -1052,7 +1052,3 @@ def create_nrql_condition(
         'status': result['status'],
         'condition_id': result['data'][mutation]['id']
     }
-
-
-
-

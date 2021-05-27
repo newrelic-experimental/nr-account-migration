@@ -1,20 +1,20 @@
 import json
 import requests
 import os
-import time
 import library.migrationlogger as m_logger
 import library.monitortypes as monitortypes
 import library.status.monitorstatus as monitorstatus
 import library.securecredentials as securecredentials
 import library.clients.entityclient as ec
+from library.clients.endpoints import Endpoints
+import time
 
 
 # monitors provides REST client calls for fetching a monitor and a monitor script
 # and populating a monitor_json with it's script
 # Batch size for fetching monitors, must be less than or equal to 100
 BATCH_SIZE = 100
-monitors_url = 'https://synthetics.newrelic.com/synthetics/api/v3/monitors/'
-monitor_label_url = 'https://synthetics.newrelic.com/synthetics/api/v4/monitors/'
+
 logger = m_logger.get_logger(os.path.basename(__file__))
 NEW_MONITOR_ID = 'new_monitor_id'
 MON_SEC_CREDENTIALS = 'secureCredentials'
@@ -24,8 +24,8 @@ def setup_headers(api_key):
     return {'Api-Key': api_key, 'Content-Type': 'Application/JSON'}
 
 
-def fetch_script(api_key, monitor_id):
-    get_script_url = monitors_url + monitor_id + "/script"
+def fetch_script(api_key, monitor_id, region=Endpoints.REGION_US):
+    get_script_url = Endpoints.of(region).MONITORS_URL + monitor_id + "/script"
     response = requests.get(get_script_url, headers=setup_headers(api_key))
     if response.status_code == 200:
         body_str = json.loads(response.text)
@@ -34,8 +34,8 @@ def fetch_script(api_key, monitor_id):
     return {'status': response.status_code, 'body': body_str}
 
 
-def get_monitor(api_key, monitor_id):
-    get_monitor_url = monitors_url + monitor_id
+def get_monitor(api_key, monitor_id, region=Endpoints.REGION_US):
+    get_monitor_url = Endpoints.of(region).MONITORS_URL + monitor_id
     response = requests.get(get_monitor_url, headers=setup_headers(api_key))
     result = {'status': response.status_code }
     if response.status_code == 200:
@@ -48,13 +48,14 @@ def get_monitor(api_key, monitor_id):
     return result
 
 
-def fetch_all_monitors(api_key):
+def fetch_all_monitors(api_key, region=Endpoints.REGION_US):
+    print(region)
     query_params = {'offset': 0, 'limit': BATCH_SIZE}
     fetch_more = True
     all_monitors_def_json = []
     logger.info("Fetching all monitor definitions with query_params " + str(query_params))
     while fetch_more:
-        response = requests.get(monitors_url, headers=setup_headers(api_key), params=query_params)
+        response = requests.get(Endpoints.of(region).MONITORS_URL, headers=setup_headers(api_key), params=query_params)
         response_json = json.loads(response.text)
         monitors_returned = response_json['count']
         if monitors_returned == 0 or monitors_returned < query_params['limit']:
@@ -112,11 +113,11 @@ def get_target_monitor_guid(monitor_name, per_api_key, tgt_acct_id):
     return monitor_guid
 
 
-def post_monitor_definition(api_key, monitor_name, monitor, monitor_status):
+def post_monitor_definition(api_key, monitor_name, monitor, monitor_status, region=Endpoints.REGION_US):
     prep_monitor = monitortypes.prep_monitor_type(monitor['definition'])
     monitor_json_str = json.dumps(prep_monitor)
     logger.debug(monitor_json_str)
-    response = requests.post(monitors_url, headers=setup_headers(api_key), data=monitor_json_str)
+    response = requests.post(Endpoints.of(region).MONITORS_URL, headers=setup_headers(api_key), data=monitor_json_str)
     post_status = {monitorstatus.STATUS: response.status_code}
     logger.debug(response.headers)
     if response.status_code == 201:
@@ -130,11 +131,11 @@ def post_monitor_definition(api_key, monitor_name, monitor, monitor_status):
     logger.info(monitor_name + " : " + str(post_status))
 
 
-def update(api_key, monitor_id, update_json, monitor_name):
+def update(api_key, monitor_id, update_json, monitor_name, region=Endpoints.REGION_US):
     logger.info('Updating ' + monitor_name)
     update_payload = json.dumps(update_json)
     logger.info(update_payload)
-    put_monitor_url = monitors_url + str(monitor_id)
+    put_monitor_url = Endpoints.of(region).MONITORS_URL + str(monitor_id)
     result = {'entityUpdated': False}
     response = requests.patch(put_monitor_url, headers=setup_headers(api_key), data=update_payload)
     result['status'] = response.status_code
@@ -147,3 +148,19 @@ def update(api_key, monitor_id, update_json, monitor_name):
     else:
         result['updatedEntity'] = str(update_json)
     return result
+
+
+def delete_monitor(monitor, target_acct, failure_status, success_status, tgt_api_key, region):
+    logger.info(monitor)
+    monitor_id = monitor['id']
+    monitor_name = monitor['name']
+    response = requests.delete(Endpoints.of(region).MONITORS_URL + monitor_id,
+                               headers=setup_headers(tgt_api_key))
+    if response.status_code == 204:
+        success_status[monitor_name] = {'status': response.status_code, 'responseText': response.text}
+        logger.info(target_acct + ":" + monitor_name + ":" + str(success_status[monitor_name]))
+    else:
+        failure_status[monitor_name] = {'status': response.status_code, 'responseText': response.text}
+        logger.info(target_acct + ":" + monitor_name + ":" + str(failure_status[monitor_name]))
+    # trying to stay within 3 requests per second
+    time.sleep(0.3)

@@ -1,8 +1,9 @@
 import os
 import requests
 import library.migrationlogger as m_logger
+from library.clients.endpoints import Endpoints
 
-insights_url = 'https://insights-api.newrelic.com/v1/accounts/%s/query'
+
 PERF_STATS = 'performanceStats'
 METADATA = 'metadata'
 
@@ -13,10 +14,10 @@ def setup_headers(api_key):
     return {'X-Query-Key': api_key, 'Content-Type': 'Application/JSON'}
 
 
-def execute(insights_query_key, account_id, insights_query):
+def execute(insights_query_key, account_id, insights_query, region=Endpoints.REGION_US):
     log.debug(insights_query)
     query_params = {'nrql': insights_query}
-    query_url = insights_url % account_id
+    query_url = Endpoints.of(region).INSIGHTS_URL % account_id
     response = requests.get(query_url, headers=setup_headers(insights_query_key),
                             params=query_params)
     result = {'status': response.status_code}

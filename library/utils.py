@@ -16,12 +16,14 @@ NORMAL_PAGINATION = 'normal'
 INFRA_PAGINATION = 'infra'
 logger = m_logger.get_logger(os.path.basename(__file__))
 
+
 def configure_loglevel(args):
     log_level = logging.INFO
     if args.debug:
         log_level = logging.DEBUG
         
     m_logger.set_log_level(log_level)
+
 
 def setup_headers(api_key):
     return {'Api-Key': api_key, 'Content-Type': 'application/json'}
@@ -112,6 +114,28 @@ def ensure_source_api_key(args):
         api_key = os.environ.get('ENV_SOURCE_API_KEY')
     return api_key
 
+
+def ensure_region(args):
+    region = 'us'
+    if args.region and len(args.region) > 0:
+        region = args.region[0]
+    return region
+
+
+def ensure_source_region(args):
+    sourceRegion = 'us'
+    if args.sourceRegion and len(args.sourceRegion) > 0:
+        sourceRegion = args.sourceRegion[0]
+    return sourceRegion
+
+
+def ensure_target_region(args):
+    targetRegion = 'us'
+    if args.targetRegion and len(args.targetRegion) > 0:
+        targetRegion = args.targetRegion[0]
+    return targetRegion
+
+
 def error_and_exit(param_name, env_name):
     error_message_and_exit('Error: Missing param ' + param_name + ' or env variable ' + env_name)
 
@@ -143,20 +167,19 @@ def get_condition_prefix(entity_type):
         return '-ktcon'
 
 
-def load_alert_policy_names(policyNameFile, entityNameFile, account_id, api_key, use_local):
+def load_alert_policy_names(policyNameFile, entityNameFile, account_id, region, api_key, use_local):
     names = set()
     if policyNameFile:
         policy_names = store.load_names(policyNameFile)
         names.update(set(policy_names))
-
     if entityNameFile:
         entity_names = store.load_names(entityNameFile)
         if entity_names:
-            policy_names = ac.get_policy_names_by_entities(entity_names, account_id, api_key, use_local)
+            policy_names = ac.get_policy_names_by_entities(entity_names, account_id, api_key, use_local, region)
             if policy_names:
                 names.update(set(policy_names))
-
     return list(names)
+
 
 def config_get(
     config: configparser.ConfigParser, 
@@ -168,6 +191,7 @@ def config_get(
         return value
 
     return os.environ.get('ENV_%s' % key.upper())
+
 
 def process_base_config(
     config: configparser.ConfigParser,
@@ -184,6 +208,18 @@ def process_base_config(
             error_message_and_exit('A source account ID is required')
         source_account_id = args.source_account_id[0]
 
+    source_region = config_get(
+        config,
+        section_name,
+        'source_region'
+    )
+    if not source_region:
+        if not args.source_region:
+            logger.info('source_region not specified defaulting to us')
+            source_region = 'us'
+        else:
+            source_region = args.source_region[0]
+
     target_account_id = config_get(
         config,
         section_name,
@@ -193,6 +229,18 @@ def process_base_config(
         if not args.target_account_id:
             error_message_and_exit('A target account ID is required')
         target_account_id = args.target_account_id[0]
+
+    target_region = config_get(
+        config,
+        section_name,
+        'target_region'
+    )
+    if not target_region:
+        if not args.target_region:
+            logger.info('target_region not specified defaulting to us')
+            target_region = 'us'
+        else:
+            target_region = args.target_region[0]
 
     source_api_key = config_get(config, section_name, 'source_api_key')
     if not source_api_key:
@@ -208,7 +256,9 @@ def process_base_config(
 
     return {
         'source_account_id': source_account_id,
+        'source_region': source_region,
         'target_account_id': target_account_id,
+        'target_region': target_region,
         'source_api_key': source_api_key,
         'target_api_key': target_api_key,
     }

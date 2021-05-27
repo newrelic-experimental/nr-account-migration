@@ -120,7 +120,7 @@ APM Configuration
 ####  1) python3 fetchmonitors.py 
 
 ```
-usage: fetchmonitors.py [-h] --sourceAccount SOURCEACCOUNT
+usage: fetchmonitors.py --sourceAccount SOURCEACCOUNT --region [ us (default) |eu ]
                     --sourceApiKey SOURCEAPIKEY  
                     --insightsQueryKey INSIGHTSQUERYKEY
                     --toFile TOFILE
@@ -129,6 +129,7 @@ usage: fetchmonitors.py [-h] --sourceAccount SOURCEACCOUNT
 Parameter        | Note
 ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 sourceAccount    | Account to fetch monitors from
+region           | Optional region us (default) or eu
 sourceApiKey     | This should be a User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 insightsQueryKey | must be supplied to fetch secure credentials from Insights for any monitors that ran in the past 7 days. Secure credentials fetching is skipped if this is not passed.
 toFile           | should only be a file name e.g. soure-monitors.csv. It will always be created in output/ directory
@@ -139,7 +140,7 @@ toFile           | should only be a file name e.g. soure-monitors.csv. It will a
 
 ####  3) python3 fetchchannels.py (optional if you want to use --useLocal option during migratepolicies)
 
-`usage: fetchalerts.py [-h] --sourceAccount SOURCEACCOUNT [--sourceApiKey SOURCEAPIKEY]`
+`usage: fetchchannels.py  --sourceAccount SOURCEACCOUNT [--sourceApiKey SOURCEAPIKEY] --region [ us (default) |eu ]`
 
 Fetches alert channels and builds a dictionary mapping channels to policy_id.
 
@@ -149,14 +150,16 @@ During migratepolicies the stored alert_channels can be used by passing --useLoc
 
 ####  4) python3 migratemonitors.py
 
-`usage: migratemonitors.py [-h] --fromFile FROMFILE --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetApiKey TARGETAPIKEY] --timeStamp TIMESTAMP [--useLocal]`
+`usage: migratemonitors.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT  [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] --timeStamp TIMESTAMP [--useLocal]`
 
 Parameter     | Note
 ------------- | --------------------------------------------------------------------------------------------------------
 fromFile      | Must contain monitor names one per line. The fetchentities.py script can be used to help generate this list of monitors.
 sourceAccount | Account to fetch monitors from
+sourceRegion  | Optional region us (default) or eu
 sourceApiKey  | This should be a User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 targetAccount | Account to migrate monitors to
+targetRegion  | Optional region us (default) or eu
 targetApiKey  | This should be a User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 timeStamp     | must match the timeStamp generated in fetchmonitors , used when useLocal flag is passed
 useLocal      | By default monitors are fetched from sourceAccount. A pre-fetched copy can be used by passing this flag.
@@ -179,7 +182,7 @@ A value of 0 CHECK_COUNT for scripted monitors indicates it has not run in the p
 
 ####  5) python3 migratepolicies.py
 
-`usage: migratepolicies.py [-h] --fromFile FROMFILE --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetApiKey TARGETAPIKEY] [--useLocal]`
+`usage: migratepolicies.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--useLocal]`
 
 Parameter        | Note
 ---------------- | ------------------------------------------------------------------------------------------------------
@@ -187,8 +190,10 @@ fromFile         | must contain alert policy names one per line
 fromFileEntities | must contain APM, Browser, or Mobile application names or IDs or APM KT names or IDs (not GUIDs)
 personalApiKey   | Personal API Key used for GraphQL API Client calls
 sourceAccount    | Account to fetch monitors from
+sourceRegion     | Optional region us (default) or eu
 sourceApiKey     | User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Alerts
 targetAccount    | Account to migrate policies to
+targetRegion     | Optional region us (default) or eu
 targetApiKey     | User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Alerts
 useLocal         | By alert channels are fetched from sourceAccount. A pre-fetched copy can be used by passing this flag.
 
@@ -261,7 +266,7 @@ to move will be the union of both.
 
 Any target APM , Browser, Mobile apps and Key transactions must be migrated manually.
 
-`usage: migrateconditions.py [-h] --fromFile FROMFILE --personalApiKey PERSONALAPIKEY --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetApiKey TARGETAPIKEY] [--matchSourceState] [--synthetics --app_conditions --nrql_conditions --infra_conditions]`
+`usage: migrateconditions.py [-h] --fromFile FROMFILE --personalApiKey PERSONALAPIKEY --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--matchSourceState] [--synthetics --app_conditions --nrql_conditions --infra_conditions]`
 
 Parameter      | Note
 -------------- | --------------------------------------------------
@@ -269,8 +274,10 @@ fromFile       | must contain alert policy names one per line
 fromFileEntities | must contain APM, Browser, or Mobile application names or IDs or APM KT names or IDs (not GUIDs)
 personalApiKey | Personal API Key used for GraphQL API Client calls
 sourceAccount  | Account to fetch monitors from
+sourceRegion   | Optional region us (default) or eu
 sourceApiKey   | User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Alerts
 targetAccount  | Account to migrate policies to
+targetRegion   | Optional region us (default) or eu
 targetApiKey   | User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Alerts
 matchSourceState | Match alert condition enabled/disabled state from the source account in the target account. By default, all copied alert conditions are disabled in the target account.
 synthetics     | Pass this flag to migrate synthetic conditions
@@ -307,9 +314,9 @@ if `--app_conditions` is specified.
 
 Migrate APM Apdex configuration settings. **This no longer migrates labels.** Please use migratetags.py instead for tag migrations.
 
-usage: migrate_apm.py [-h] --fromFile FROMFILE --sourceAccount SOURCEACCOUNT
+usage: migrate_apm.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] 
                         --personalApiKey PERSONALAPIKEY --sourceApiKey
-                        SOURCEAPIKEY --targetAccount TARGETACCOUNT
+                        SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] 
                         --targetApiKey TARGETAPIKEY  [--settings]
 
 ##### Note: Ensure target apps are running or were running recently so that the target ids can be picked
@@ -317,9 +324,9 @@ usage: migrate_apm.py [-h] --fromFile FROMFILE --sourceAccount SOURCEACCOUNT
 
 ####  8) python3 migrate_dashboards.py
 
-usage: migrate_dashboards.py [-h] --fromFile FROMFILE --sourceAccount
+usage: migrate_dashboards.py [-h] --fromFile FROMFILE --sourceAccount [--sourceRegion SOURCEREGION] 
                              SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
-                             --targetAccount TARGETACCOUNT
+                             --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] 
                              [--targetApiKey TARGETAPIKEY]
 
 Migrate dashboards between accounts, including modifying queries to point to the new target account. The fetchentities.py script can help create the file to pass with fromFile.
@@ -355,7 +362,7 @@ synthetics     | Pass this flag to migrate Synthetic monitor entity tags
 
 Potential use is for renaming/disabling migrated monitors in source account.
 
-`usage: updatemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT --timeStamp TIMESTAMP [--renamePrefix RENAMEPREFIX] [--disable]`
+`usage: updatemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --timeStamp TIMESTAMP [--renamePrefix RENAMEPREFIX] [--disable]`
 
 Parameter     | Note
 ------------- | -------------------------------------------------------------------------
@@ -405,7 +412,7 @@ synthetics     | Pass this flag to list Synthetic monitor entities
 
 ####  12) python3 deletemonitors.py
 
-`usage: deletemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT --timeStamp TIMESTAMP`
+`usage: deletemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --timeStamp TIMESTAMP`
 
 Will delete monitors listed one per line in --fromFile and stored in db/targetaccount/monitors/timeStamp. The fetchentities.py script can help generate this file.
 
@@ -413,7 +420,7 @@ Will delete monitors listed one per line in --fromFile and stored in db/targetac
 
 #### Warning: All monitors in target account will be deleted
 
-`usage: deleteallmonitors.py [-h] [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT`
+`usage: deleteallmonitors.py [-h] [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION]`
 
 deleteallmonitors fetches all the monitors. Backs them up in db/accountId/monitors/timeStamp-bakup And deletes all the monitors
 

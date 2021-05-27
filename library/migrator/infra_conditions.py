@@ -5,12 +5,14 @@ import library.clients.alertsclient as ac
 
 logger = logger.get_logger(os.path.basename(__file__))
 
-def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
+
+def migrate(all_alert_status, policy_name, src_api_key, src_region, src_policy,
+            tgt_acct_id, tgt_api_key, tgt_region, tgt_policy, match_source_status):
     logger.info('Loading source infrastructure conditions ')
-    infra_conditions = ac.get_infra_conditions(src_api_key, src_policy['id'])[ac.INFRA_CONDITIONS]
+    infra_conditions = ac.get_infra_conditions(src_api_key, src_policy['id'], src_region)[ac.INFRA_CONDITIONS]
     logger.info('Found infrastructure conditions ' + str(len(infra_conditions)))
     logger.info('Loading target infrastructure conditions ' + policy_name)
-    tgt_infra_conds = ac.infra_conditions_by_name(tgt_api_key, tgt_policy['id'])
+    tgt_infra_conds = ac.infra_conditions_by_name(tgt_api_key, tgt_policy['id'], tgt_region)
     condition_num = 0
     for infra_condition in infra_conditions:
         condition_num = condition_num + 1
@@ -19,10 +21,11 @@ def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id,
         if infra_condition['name'] not in tgt_infra_conds:
             logger.info('Creating target infrastructure condition ' + infra_condition['name'])
             tgt_condition = create_tgt_infra_condition(infra_condition, tgt_policy['id'], match_source_status)
-            result = ac.create_infra_condition(tgt_api_key, tgt_policy, tgt_condition)
+            result = ac.create_infra_condition(tgt_api_key, tgt_policy, tgt_condition, tgt_region)
             all_alert_status[condition_row][cs.STATUS] = result['status']
             if 'error' in result.keys():
                 all_alert_status[condition_row][cs.ERROR] = result['error']
+
 
 def create_tgt_infra_condition(infra_condition, tgt_pol_id, match_source_status):
     tgt_condition = infra_condition.copy()

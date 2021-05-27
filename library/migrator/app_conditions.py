@@ -8,30 +8,32 @@ import library.utils as utils
 logger = logger.get_logger(os.path.basename(__file__))
 
 
-def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
+def migrate(all_alert_status, policy_name, src_api_key, src_region, src_policy,
+            tgt_acct_id, tgt_api_key, tgt_region, tgt_policy, match_source_status):
     logger.info('loading source app conditions')
-    all_app_conditions = ac.get_app_conditions(src_api_key, src_policy['id'])[ac.CONDITIONS]
+    all_app_conditions = ac.get_app_conditions(src_api_key, src_policy['id'], src_region)[ac.CONDITIONS]
     logger.info("Found app alert conditions " + str(len(all_app_conditions)))
     tgt_app_conds = ac.app_conditions_by_name_entity(tgt_api_key, tgt_policy['id'])
     condition_num = 0
     for app_condition in all_app_conditions:
         condition_num = condition_num + 1
         entity_type = utils.get_entity_type(app_condition)
-        condition_row = create_condition_status_row(all_alert_status, app_condition, condition_num, entity_type, policy_name)
+        condition_row = create_condition_status_row(all_alert_status, app_condition, condition_num,
+                                                    entity_type, policy_name)
         entity_ids = app_condition[ac.ENTITIES]
         tgt_entities = []
         tgt_existing = []
         for entity_id in entity_ids:
-            result = ec.get_entity(src_api_key, entity_type, entity_id)
+            result = ec.get_entity(src_api_key, entity_type, entity_id, src_region)
             if not result['entityFound']:
                 status_src_not_found(all_alert_status, condition_row, entity_type, entity_id)
                 continue
             src_entity = result['entity']
             logger.info('source entity found ' + str(src_entity['id']))
             if entity_type == ec.APM_KT:
-                result = ec.get_matching_kt(tgt_api_key,src_entity['name'])
+                result = ec.get_matching_kt(tgt_api_key, src_entity['name'], tgt_region)
             else:
-                result = ec.gql_get_matching_entity(tgt_api_key, entity_type, src_entity, tgt_acct_id)
+                result = ec.gql_get_matching_entity(tgt_api_key, entity_type, src_entity, tgt_acct_id, tgt_region)
             if not result['entityFound']:
                 status_tgt_not_found(all_alert_status, condition_row, src_entity, app_condition)
                 continue
@@ -52,7 +54,7 @@ def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id,
             update_condition_status(all_alert_status, condition_row, entity_ids, tgt_acct_id,
                                     tgt_entities)
             tgt_condition = create_tgt_app_condition(app_condition, tgt_entities, match_source_status)
-            result = ac.create_app_condition(tgt_api_key, tgt_policy, tgt_condition)
+            result = ac.create_app_condition(tgt_api_key, tgt_policy, tgt_condition, tgt_region)
             all_alert_status[condition_row][cs.STATUS] = result['status']
             if cs.ERROR in result.keys():
                 all_alert_status[condition_row][cs.ERROR] = result['error']

@@ -76,6 +76,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
 
     return parser
 
+
 def parse_config(config_file_path: str) -> configparser.ConfigParser:
     """Parse the configuration file
 
@@ -101,6 +102,7 @@ def parse_config(config_file_path: str) -> configparser.ConfigParser:
 
     return config
 
+
 def main():
     """Parse the CLI arguments and run the appropriate commands.
     """
@@ -123,6 +125,7 @@ def main():
     args.func(config, args)
 
     logger.info('Done.')
+
 
 if __name__ == "__main__":
     main()

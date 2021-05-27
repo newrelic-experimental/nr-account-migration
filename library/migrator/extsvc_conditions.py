@@ -8,9 +8,9 @@ import library.utils as utils
 log = m_logger.get_logger(os.path.basename(__file__))
 
 
-def extsvc_conditions_by_name_entity(api_key, policy_id):
+def extsvc_conditions_by_name_entity(api_key, policy_id, region):
     conditions_by_name_entity = {}
-    extsvc_conditions = ac.get_extsvc_conditions(api_key, policy_id)[ac.EXTSVC_CONDITIONS]
+    extsvc_conditions = ac.get_extsvc_conditions(api_key, policy_id, region)[ac.EXTSVC_CONDITIONS]
     for extsvc_condition in extsvc_conditions:
         for entity_id in extsvc_condition['entities']:
             conditions_by_name_entity[extsvc_condition['name'] + str(entity_id)] = extsvc_condition
@@ -24,14 +24,15 @@ def get_entity_type(extsvc_condition):
         return ec.MOBILE_APP
 
 
-def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id, tgt_api_key, tgt_policy, match_source_status):
+def migrate(all_alert_status, policy_name, src_api_key, src_region, src_policy,
+            tgt_acct_id, tgt_api_key, tgt_region, tgt_policy, match_source_status):
     log.info('loading source ext svc conditions')
-    extsvc_conditions = ac.get_extsvc_conditions(src_api_key, src_policy['id'])[ac.EXTSVC_CONDITIONS]
+    extsvc_conditions = ac.get_extsvc_conditions(src_api_key, src_policy['id'], src_region)[ac.EXTSVC_CONDITIONS]
     if len(extsvc_conditions) <= 0:
         log.info("No external service conditions found.")
         return
     log.info("Found ext svc conditions " + str(len(extsvc_conditions)))
-    tgt_extsvc_conds = extsvc_conditions_by_name_entity(tgt_api_key, tgt_policy['id'])
+    tgt_extsvc_conds = extsvc_conditions_by_name_entity(tgt_api_key, tgt_policy['id'], tgt_region)
     cond_num = 0
     for extsvc_condition in extsvc_conditions:
         cond_num = cond_num + 1
@@ -41,13 +42,13 @@ def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id,
         tgt_entities = []
         tgt_existing = []
         for entity_id in entity_ids:
-            result = ec.get_entity(src_api_key, entity_type, entity_id)
+            result = ec.get_entity(src_api_key, entity_type, entity_id, src_region)
             if not result['entityFound']:
                 status_src_not_found(all_alert_status, cond_row, entity_type, entity_id)
                 continue
             src_entity = result['entity']
             log.info('source entity found ' + str(src_entity['id']))
-            result = ec.gql_get_matching_entity(tgt_api_key, entity_type, src_entity, tgt_acct_id)
+            result = ec.gql_get_matching_entity(tgt_api_key, entity_type, src_entity, tgt_acct_id, tgt_region)
             if not result['entityFound']:
                 status_tgt_not_found(all_alert_status, cond_row, src_entity, extsvc_condition)
                 continue
@@ -64,7 +65,7 @@ def migrate(all_alert_status, policy_name, src_api_key, src_policy, tgt_acct_id,
             update_condition_status(all_alert_status, cond_row, entity_ids, tgt_acct_id,
                                     tgt_entities)
             tgt_condition = create_tgt_extsvc_condition(extsvc_condition, tgt_entities, match_source_status)
-            result = ac.create_extsvc_condition(tgt_api_key, tgt_policy, tgt_condition)
+            result = ac.create_extsvc_condition(tgt_api_key, tgt_policy, tgt_condition, tgt_region)
             all_alert_status[cond_row][cs.STATUS] = result['status']
             if cs.ERROR in result.keys():
                 all_alert_status[cond_row][cs.ERROR] = result['error']

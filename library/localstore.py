@@ -233,10 +233,12 @@ def save_alert_policies(account_id, alert_policies):
     alert_policies_dir = base_dir / account_id / ALERT_POLICIES_DIR
     save_json(alert_policies_dir, ALERT_POLICIES_FILE, alert_policies)
 
+
 def save_alert_policy_entity_map(account_id, alert_policies_app_map):
     base_dir = Path("db")
     alert_policies_dir = base_dir / account_id / ALERT_POLICIES_DIR
     save_json(alert_policies_dir, ALERT_POLICY_ENTITY_MAP_FILE, alert_policies_app_map)
+
 
 def save_alert_violations(account_id, alert_violations):
     base_dir = Path("db")

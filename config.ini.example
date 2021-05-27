@@ -1,7 +1,27 @@
 [default]
-personal_api_key: 123456
+
 
 [migrate.policies]
-policies_file: /tmp/policies.txt
+soure_account: 12345
+source_region: us
+source_api_key: ASFASFDASFSADF
+target_account: 98765
+target_region: us
+target_api_key: ASFASFASFASFASF
+policies_file: output/us-policies.txt
 entities_file: /tmp/entities.txt
 
+[migrate.conditions]
+source_account_id: 12345
+source_region: us
+source_api_key: ASDASFDSAFASFD
+target_account_id: 98765
+target_region: us
+target_api_key: DFDFSDFSDFDF
+policy_file: output/us-policies.txt
+all: true
+app_conditions: true
+synthetics: true
+nrql_conditions: true
+ext_svc_conditions: true
+infra_conditions: true

@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 import os
 import csv
-import datetime
+from datetime import datetime
 import library.monitortypes as monitortypes
 import library.migrationlogger as migrationlogger
 import library.windows_names as win_names
@@ -273,6 +273,7 @@ def convert_timestamps_to_dates(violation):
         closed_at_date = datetime.fromtimestamp(violation['closed_at']/1000)
         violation['closed_at'] = closed_at_date
     return violation
+
 
 #  db/<account_id>/alert_policies/alerts_channels.json
 def save_alert_channels(account_id, all_alert_channels):

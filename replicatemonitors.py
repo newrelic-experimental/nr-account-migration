@@ -7,6 +7,7 @@ import library.migrationlogger as migrationlogger
 import library.monitortypes as monitortypes
 import library.clients.monitorsclient as monitorsclient
 
+# NOT SUPPORTED - DO NOT USE
 # TESTING only replicatemonitors must be used after doing a fetchmonitors
 # specify the source account, timestamp that you want to migrate
 # Also specify the targetAccount and targetApiKey to which you want to migrate the stored monitors

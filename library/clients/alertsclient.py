@@ -356,7 +356,7 @@ def get_alert_status_file_name(fromFile, fromFileEntities, src_account_id, tgt_a
     return status_file_name + str(tgt_account_id) + '_conditions.csv'
 
 
-def get_policy_entity_map(api_key, alert_policies):
+def get_policy_entity_map(api_key, alert_policies, region=Endpoints.REGION_US):
     entities_by_policy = {}
     policies_by_entity = {}
     for policy in alert_policies:
@@ -364,7 +364,7 @@ def get_policy_entity_map(api_key, alert_policies):
         policy_name = policy['name']
         apps = []
         logger.info('Loading app entity conditions for policy ID %d...' % policy_id)
-        conditions = get_app_conditions(api_key, policy_id)
+        conditions = get_app_conditions(api_key, policy_id, region)
         if not 'response_count' in conditions or conditions['response_count'] == 0:
             logger.info('No app entity conditions found for policy ID %d' % policy_id)
             entities_by_policy[policy_name] = []

@@ -170,8 +170,10 @@ def load_synth_conditions(account_id):
 def load_alert_policies(account_id):
     return load_json_file(account_id, ALERT_POLICIES_DIR, ALERT_POLICIES_FILE)
 
+
 def load_alert_policy_entity_map(account_id):
     return load_json_file(account_id, ALERT_POLICIES_DIR, ALERT_POLICY_ENTITY_MAP_FILE)
+
 
 def load_alert_channels(account_id):
     return load_json_file(account_id, ALERT_POLICIES_DIR, ALERT_CHANNELS_FILE)

@@ -52,6 +52,8 @@ class USEndpoints:
     INFRA_CONDITIONS_URL = 'https://infra-api.newrelic.com/v2/alerts/conditions'
     CREATE_INFRA_CONDITION_URL = 'https://infra-api.newrelic.com/v2/alerts/conditions'
     ENTITY_CONDITIONS_URL = 'https://api.newrelic.com/v2/alerts_entity_conditions'
+    ALERT_VIOLATIONS_URL = 'https://api.newrelic.com/v2/alerts_violations.json'
+
 
 class EUEndpoints:
 
@@ -88,3 +90,4 @@ class EUEndpoints:
     INFRA_CONDITIONS_URL = 'https://infra-api.eu.newrelic.com/v2/alerts/conditions'
     CREATE_INFRA_CONDITION_URL = 'https://infra-api.eu.newrelic.com/v2/alerts/conditions'
     ENTITY_CONDITIONS_URL = 'https://api.eu.newrelic.com/v2/alerts_entity_conditions'
+    ALERT_VIOLATIONS_URL = 'https://api.eu.newrelic.com/v2/alerts_violations.json'

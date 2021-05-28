@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 import os
 import csv
-import datetime
+from datetime import datetime
 import library.monitortypes as monitortypes
 import library.migrationlogger as migrationlogger
 import library.windows_names as win_names
@@ -170,8 +170,10 @@ def load_synth_conditions(account_id):
 def load_alert_policies(account_id):
     return load_json_file(account_id, ALERT_POLICIES_DIR, ALERT_POLICIES_FILE)
 
+
 def load_alert_policy_entity_map(account_id):
     return load_json_file(account_id, ALERT_POLICIES_DIR, ALERT_POLICY_ENTITY_MAP_FILE)
+
 
 def load_alert_channels(account_id):
     return load_json_file(account_id, ALERT_POLICIES_DIR, ALERT_CHANNELS_FILE)
@@ -271,6 +273,7 @@ def convert_timestamps_to_dates(violation):
         closed_at_date = datetime.fromtimestamp(violation['closed_at']/1000)
         violation['closed_at'] = closed_at_date
     return violation
+
 
 #  db/<account_id>/alert_policies/alerts_channels.json
 def save_alert_channels(account_id, all_alert_channels):

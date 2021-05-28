@@ -334,8 +334,8 @@ Migrate dashboards between accounts, including modifying queries to point to the
 ####  9) python3 migratetags.py
 
 usage: migratetags.py [-h] --fromFile FROMFILE --sourceAccount
-                            SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
-                            --targetAccount TARGETACCOUNT --targetApiKey TARGETAPIKEY
+                            SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY
+                            --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION]  --targetApiKey TARGETAPIKEY
                             [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics]
 
 Migrate entity tags between entities with matching names and entity types. 
@@ -344,8 +344,10 @@ Parameter      | Note
 -------------- | --------------------------------------------------
 fromFile       | Must contain entity names one per line. The fetchentities.py script can help create this file.
 sourceAccount  | Account to search for a matching source entity
+sourceRegion   | Optional region us (default) or eu
 sourceApiKey   | User API Key for sourceAccount 
 targetAccount  | Account to search for a matching target entity
+targetRegion   | Optional region us (default) or eu
 targetApiKey   | User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Alerts
 apm            | Pass this flag to migrate APM entity tags
 browser        | Pass this flag to migrate Browser entity tags
@@ -368,6 +370,7 @@ Parameter     | Note
 ------------- | -------------------------------------------------------------------------
 fromFile      | Specifies the file with relative path, listing the monitors to be updated. The fetchentities.py script can help generate this file.
 targetAccount | Account in which monitors need to be updated
+targetRegion   | Optional region us (default) or eu
 targetApiKey  | This should be a User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 timeStamp     | must match the timeStamp generated in fetchmonitors
 renamePrefix  | Monitors are renamed with this prefix
@@ -386,7 +389,7 @@ output/targetAccount_fromFile_updated_monitors.csv
 
 ####  11) python3 fetchentities.py
 
-usage: fetchentities.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
+usage: fetchentities.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY
                             --toFile FILENAME [--tagName TAGNAME --tagValue TAGVALUE]
                             [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics] 
 
@@ -395,6 +398,7 @@ Create a file in the output directory that contains entity names from the source
 Parameter      | Note
 -------------- | --------------------------------------------------
 sourceAccount  | Account to search for matching entities
+sourceRegion   | Optional region us (default) or eu
 sourceApiKey   | User API Key for sourceAccount 
 toFile         | File name to use to store entity names. This file will be created in the output directory.
 tagName        | Tag name to use to filter results
@@ -428,15 +432,17 @@ deleteallmonitors fetches all the monitors. Backs them up in db/accountId/monito
 
 ####  14) (optional) python3 store_policies.py
 
-usage: store_policies.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
+usage: store_policies.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY
 
 Saves all alert polices in db/<sourceAccount>/alert_policies/alert_policies.json
 
 ####  15) (optional) python3 store_violations.py
 
-usage: store_violations.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --startDate STARTDATE --endDate ENDDATE [--onlyOpen]
+usage: store_violations.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY --startDate STARTDATE --endDate ENDDATE [--onlyOpen]
 
  --sourceAccount SOURCEACCOUNT Source accountId
+
+ --sourceRegion' SOURCEREGION us (default) or eu
  
   --sourceApiKey SOURCEAPIKEY Source account API Key or set environment variable ENV_SOURCE_API_KEY
   
@@ -452,7 +458,7 @@ and db/<sourceAccount>/alert_violations/alert_violations.csv
 
 ####  16) (optional) python3 store_policy_entity_map.py
 
-usage: store_policy_entity_map.py [-h] --sourceAccount SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY --useLocal
+usage: store_policy_entity_map.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY --useLocal
 
 Builds a mapping from APM, Browser, and Mobile applications and APM key
 transactions to and from alert policies for any policies which contain
@@ -475,6 +481,9 @@ Verification of test is also manual at the moment.
 ## Contributing
 We encourage your contributions to improve nr-account-migration! Keep in mind when you submit your pull request, you'll need to sign the CLA via the click-through using CLA-Assistant. You only have to sign the CLA one time per project.
 If you have any questions, or to execute our corporate CLA, required if your contribution is on behalf of a company,  please drop us an email at opensource@newrelic.com.
+
+### Style Guide
+Use PEP 8 Style Guide for Python Code https://www.python.org/dev/peps/pep-0008/
 
 **A note about vulnerabilities**
 

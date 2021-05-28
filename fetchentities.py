@@ -8,15 +8,14 @@ import library.migrationlogger as migrationlogger
 import library.utils as utils
 
 logger = migrationlogger.get_logger(os.path.basename(__file__))
-args = None
 
 
-def setup_params():
+def configure_parser():
     parser = argparse.ArgumentParser(description='Migrate entity tags from one account to another')
     parser.add_argument('--sourceAccount', nargs=1, required=True, help='Source accountId')
     parser.add_argument('--sourceApiKey', nargs=1, required=False, help='Source API Key or \
     set env var ENV_SOURCE_API_KEY')
-    parser.add_argument('--region', type=str, nargs=1, required=False, help='region us(default) or eu')
+    parser.add_argument('--sourceRegion', type=str, nargs=1, required=False, help='region us(default) or eu')
     parser.add_argument('--toFile', nargs=1, required=True, help='File to populate entity names. '
                                                                  'This will be created in output directory')
     parser.add_argument('--synthetics', dest='synthetics', required=False, action='store_true', help='Pass --synthetics to list matching Synthetic monitor entities')
@@ -33,13 +32,13 @@ def setup_params():
     return parser
 
 
-def print_params(args, source_api_key, entity_types, region):
+def print_params(args, source_api_key, entity_types, src_region):
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     logger.info("Using sourceApiKey : " + len(source_api_key[:-4])*"*"+source_api_key[-4:])
-    if args.region and len(args.region) > 0:
-        logger.info("region : " + args.region[0])
+    if args.sourceRegion and len(args.sourceRegion) > 0:
+        logger.info("region : " + args.sourceRegion[0])
     else:
-        logger.info("region not passed : Defaulting to " + region)
+        logger.info("region not passed : Defaulting to " + src_region)
     logger.info("Using entity types : " + str(entity_types))
     if args.tagName:
         logger.info("Using tag name " + str(args.tagName[0]) + " and tag value " + str(args.tagValue[0]))
@@ -70,10 +69,11 @@ def parse_entity_types(args):
     return entity_types
 
 
-def fetch_entities(src_account_id, src_api_key, entity_types, output_file, *, tag_name=None, tag_value=None, region='us'):
+def fetch_entities(src_account_id, src_api_key, entity_types, output_file, *,
+                   tag_name=None, tag_value=None, src_region='us'):
     entity_names = []
     for entity_type in entity_types:
-        entities = ec.gql_get_entities_by_type(src_api_key, entity_type, src_account_id, tag_name, tag_value, region)
+        entities = ec.gql_get_entities_by_type(src_api_key, entity_type, src_account_id, tag_name, tag_value, src_region)
         for entity in entities['entities']:
             entity_names.append(entity['name'])
     entity_names_file = store.create_output_file(output_file)
@@ -86,34 +86,29 @@ def fetch_entities(src_account_id, src_api_key, entity_types, output_file, *, ta
 
 
 def main():
-    parser = setup_params()
+    parser = configure_parser()
     args = parser.parse_args()
-
-    source_api_key = utils.ensure_source_api_key(args)
-    if not source_api_key:
+    src_api_key = utils.ensure_source_api_key(args)
+    if not src_api_key:
         utils.error_and_exit('source api key', 'ENV_SOURCE_API_KEY')
-    
     entity_types = parse_entity_types(args)
     if len(entity_types) == 0:
         logger.error('At least one entity type must be specified. Currently supported: ' +
                             ec.SYNTH_MONITOR + ',' + ec.SYNTH_SECURE_CRED + ',' + ec.APM_APP + ',' + ec.BROWSER_APP + ',' + ec.DASHBOARDS + ',' + ec.INFRA_HOST + ',' + ec.INFRA_INT + ',' + ec.MOBILE_APP + ',' + ec.INFRA_LAMBDA)
         sys.exit()
-
     if args.tagName is not None and args.tagValue is None:
         logger.error('tagValue is required when tagName is set')
         sys.exit()
-
     if args.tagValue is not None and args.tagName is None:
         logger.error('tagName is required when tagValue is set')
         sys.exit()
-    region = utils.ensure_region(args)
-    print_params(args, source_api_key, entity_types, region)
-
+    src_region = utils.ensure_source_region(args)
+    print_params(args, src_api_key, entity_types, src_region)
     if args.tagName is None:
-        fetch_entities(args.sourceAccount[0], source_api_key, entity_types, args.toFile[0], region=region)
+        fetch_entities(args.sourceAccount[0], src_api_key, entity_types, args.toFile[0], src_region=src_region)
     else:
-        fetch_entities(args.sourceAccount[0], source_api_key, entity_types, args.toFile[0], tag_name=args.tagName[0],
-                       tag_value=args.tagValue[0], region=region)
+        fetch_entities(args.sourceAccount[0], src_api_key, entity_types, args.toFile[0], tag_name=args.tagName[0],
+                       tag_value=args.tagValue[0], src_region=src_region)
     
 
 if __name__ == '__main__':

@@ -467,6 +467,14 @@ transactions to and from alert policies for any policies which contain
 
 Saves the mapping in db/<sourceAccount>/alert_policies/alert_policy_entity_map.json
 
+
+####  17) python3 nrmig
+ Configure appropriate [config.ini](config.ini.example)  and run nrmig command 
+
+ python3 nrmig -c ./config.ini migrate policies
+
+ python3 nrmig -c ./config.ini migrate conditions
+ 
 ### Logging
 
 Logs are stored in logs/migrate.log Logging level can be set in migrationlogger.py. Default level for file and stdout is INFO

@@ -1,10 +1,11 @@
 import argparse
+import json
 import os
 import sys
 import time
 import library.clients.alertsclient as ac
 import library.clients.entityclient as ec
-#import library.localstore as store
+import library.localstore as store
 import library.migrationlogger as migrationlogger
 import library.utils as utils
 
@@ -17,8 +18,6 @@ def configure_parser():
     parser.add_argument('--sourceApiKey', nargs=1, required=False, help='Source API Key or \
     set env var ENV_SOURCE_API_KEY')
     parser.add_argument('--sourceRegion', type=str, nargs=1, required=False, help='region us(default) or eu')
-    parser.add_argument('--toFile', nargs=1, required=True, help='File to populate entity names. '
-                                                                 'This will be created in output directory')
     return parser
 
 
@@ -29,23 +28,6 @@ def print_params(args, source_api_key, src_region):
         logger.info("region : " + args.sourceRegion[0])
     else:
         logger.info("region not passed : Defaulting to " + src_region)
-    if args.toFile:
-        logger.info("Using toFile : " + args.toFile[0])
-
-
-#def parse_entity_types(args):
-#    entity_types = []
-#    if args.synthetics:
-#        entity_types.append(ec.SYNTH_MONITOR)
-#    if args.apm:
-#        entity_types.append(ec.APM_APP)
-#    if args.browser:
-#        entity_types.append(ec.BROWSER_APP)
-#    if args.infrahost:
-#        entity_types.append(ec.INFRA_HOST)
-#    if args.mobile:
-#        entity_types.append(ec.MOBILE_APP)
-#    return entity_types
 
 
 def fetch_entities(src_account_id, src_api_key, entity_types, output_file, *,
@@ -65,6 +47,7 @@ def fetch_entities(src_account_id, src_api_key, entity_types, output_file, *,
 
 
 def main():
+    output_file = 'host_policies_entity_report'
     parser = configure_parser()
     args = parser.parse_args()
     src_api_key = utils.ensure_source_api_key(args)
@@ -89,7 +72,11 @@ def main():
                 
 
 
-        print(policy)
+    host_policies_report_file = store.create_output_file(output_file)
+    with host_policies_report_file.open('a') as host_policies_report_out:
+        host_policies_report_out.write(json.dumps(policies) + "\n")
+        host_policies_report_out.close()
+        logger.info("Wrote %s host policies report to file %s",len(policies), output_file)
     
 
 

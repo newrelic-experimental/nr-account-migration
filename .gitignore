@@ -13,4 +13,6 @@ tests/
 output/
 db/
 
+venv/
+
 config.ini

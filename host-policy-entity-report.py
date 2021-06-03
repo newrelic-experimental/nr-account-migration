@@ -69,7 +69,7 @@ def main():
         elif 'data' in _condition_results:
             for condition in _condition_results['data']:
                 policy['conditions'].append({'name': condition['name'], 'entities': condition['entities'] if 'entities' in condition else []})
-                
+
 
 
     host_policies_report_file = store.create_output_file(output_file)
@@ -77,7 +77,7 @@ def main():
         host_policies_report_out.write(json.dumps(policies) + "\n")
         host_policies_report_out.close()
         logger.info("Wrote %s host policies report to file %s",len(policies), output_file)
-    
+
 
 
 if __name__ == '__main__':

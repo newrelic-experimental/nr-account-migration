@@ -10,14 +10,15 @@ import library.utils as utils
 
 logger = migrationlogger.get_logger(os.path.basename(__file__))
 source_api_key = ""
-parser = argparse.ArgumentParser(description='Fetch and store channels by alert policy id')
 
 
-def setup_params():
+def configure_parser():
+    parser = argparse.ArgumentParser(description='Fetch and store channels by alert policy id')
     parser.add_argument('--sourceAccount', type=str, nargs=1, required=True, help='Source accountId to store the alerts')
     parser.add_argument('--sourceApiKey', type=str, nargs=1, required=False, help='Source API Key or \
     set env var ENV_SOURCE_API_KEY')
     parser.add_argument('--region', type=str, nargs=1, required=False, help='region us(default) or eu')
+    return parser
 
 
 def print_params(args, source_api_key, region):
@@ -27,23 +28,6 @@ def print_params(args, source_api_key, region):
         logger.info("region : " + args.region[0])
     else:
         logger.info("region not passed : Defaulting to " + region)
-
-
-def setup_headers(api_key):
-    global source_api_key
-    if args.sourceApiKey:
-        source_api_key = api_key
-    else:
-        source_api_key = os.environ.get('ENV_SOURCE_API_KEY')
-    validate_keys()
-
-
-def validate_keys():
-    if not source_api_key:
-        logger.error('Error: Missing API Key. either pass as param ---sourceApiKey or \
-                environment variable ENV_SOURCE_API_KEY.\n \
-                e.g. export SOURCE_API_KEY="NRNA7893asdfhkh"')
-        sys.exit()
 
 
 # fetches all channels restructures into a dictionary as below
@@ -76,13 +60,12 @@ def fetch_alert_channels(api_key, account_id, region):
 
 def main():
     start_time = time.time()
-    setup_params()
+    parser = configure_parser()
     args = parser.parse_args()
     args_api_key = ''
     if args.sourceApiKey:
         args_api_key = args.sourceApiKey[0]
     region = utils.ensure_region(args)
-    setup_headers(args_api_key)
     print_params(args, source_api_key, region)
     fetch_alert_channels(args_api_key, args.sourceAccount[0], region)
     logger.info("Time taken : " + str(time.time() - start_time) + "seconds")

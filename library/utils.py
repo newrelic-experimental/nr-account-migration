@@ -115,9 +115,19 @@ def ensure_source_api_key(args):
     return api_key
 
 
+def ensure_insights_query_key(args):
+    if 'insightsQueryKey' in args and args.insightsQueryKey:
+        insights_query_key = args.insightsQueryKey[0]
+    elif 'insights_query_key' in args and args.insights_query_key:
+        insights_query_key = args.insights_query_key[0]
+    else:
+        insights_query_key = os.environ.get('ENV_INSIGHTS_QUERY_KEY')
+    return insights_query_key
+
+
 def ensure_region(args):
     region = 'us'
-    if args.region and len(args.region) > 0:
+    if region in args and len(args.region) > 0:
         region = args.region[0]
     return region
 
@@ -138,6 +148,7 @@ def ensure_target_region(args):
 
 def error_and_exit(param_name, env_name):
     error_message_and_exit('Error: Missing param ' + param_name + ' or env variable ' + env_name)
+
 
 def error_message_and_exit(msg):
     logger.error(msg)

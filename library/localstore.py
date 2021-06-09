@@ -106,6 +106,17 @@ def save_status_csv(status_file_name, condition_status_json, statuskeys):
             status_writer.writerow([name] + get_status_row(status, statuskeys))
 
 
+def save_host_data_csv(host_name: str, all_host_data: list):
+    output_dir = Path("output")
+    host_file_name = host_name + '.csv'
+    host_data_file = output_dir / host_file_name
+    create_file(host_data_file)
+    with open(str(host_data_file), 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile, delimiter=',',
+                                   quotechar='"', quoting=csv.QUOTE_ALL)
+        csv_writer.writerows(host_data + [""] for host_data in all_host_data)
+
+
 def load_names(from_file):
     names = []
     with open(from_file) as input_names:

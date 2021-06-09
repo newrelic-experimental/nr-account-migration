@@ -394,7 +394,7 @@ def gql_get_entities_by_type(api_key, entity_type, acct_id=None, tag_name=None, 
         if not response.text:
             done = True
             break
-        logger.info(response.text)
+        logger.debug(response.text)
         response_json = response.json()
         if 'errors' in response_json:
             done = True

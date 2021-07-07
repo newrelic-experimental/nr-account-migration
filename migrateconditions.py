@@ -345,7 +345,8 @@ def migrate(
         policy_file_path,
         entity_file_path,
         source_acct_id,
-        target_acct_id
+        target_acct_id,
+        '_conditions'
     )
     store.save_status_csv(status_file, status, cs)
 

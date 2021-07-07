@@ -67,7 +67,7 @@ def configure_parser(
         '--source_region',
         nargs=1,
         type=str,
-        required=is_standalone,
+        required=False,
         help='Source Account Region us(default) or eu',
         dest='source_region'
     )
@@ -126,16 +126,10 @@ def print_args(args, src_api_key, src_region, tgt_api_key, tgt_region):
     if (args.entity_file):
         logger.info("Using fromFileEntities : " + args.entity_file[0])
     logger.info("Using sourceAccount : " + str(args.source_account_id[0]))
-    if args.sourceRegion and len(args.sourceRegion) > 0:
-        logger.info("sourceRegion : " + args.sourceRegion[0])
-    else:
-        logger.info("sourceRegion not passed : Defaulting to " + src_region)
+    logger.info("sourceRegion : " + src_region)
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*"+src_api_key[-4:])
     logger.info("Using targetAccount : " + str(args.target_account_id[0]))
-    if args.targetRegion and len(args.targetRegion) > 0:
-        logger.info("targetRegion : " + args.targetRegion[0])
-    else:
-        logger.info("targetRegion not passed : Defaulting to " + tgt_region)
+    logger.info("targetRegion : " + tgt_region)
     logger.info("Using targetApiKey : " + len(tgt_api_key[:-4]) * "*" + tgt_api_key[-4:])
     if args.use_local:
         fetch_channels = False
@@ -286,7 +280,8 @@ def migrate(
         policy_file_path,
         entity_file_path,
         source_acct_id,
-        target_acct_id
+        target_acct_id,
+        '_policies'
     )
     store.save_status_csv(status_file, status, askeys)
 
@@ -373,12 +368,14 @@ def main():
         sys.exit()
     sourceRegion = utils.ensure_source_region(args)
     targetRegion = utils.ensure_target_region(args)
-    print_args(source_api_key, sourceRegion, target_api_key, targetRegion)
+    print_args(args, source_api_key, sourceRegion, target_api_key, targetRegion)
     migrate(
         policy_file,
         entity_file,
         args.source_account_id[0],
+        sourceRegion,
         args.target_account_id[0],
+        targetRegion,
         source_api_key,
         target_api_key,
         args.use_local

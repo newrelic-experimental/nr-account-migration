@@ -347,13 +347,13 @@ def infra_conditions_by_name(api_key, policy_id, region):
     return conditions_by_name
 
 
-def get_alert_status_file_name(fromFile, fromFileEntities, src_account_id, tgt_account_id):
+def get_alert_status_file_name(fromFile, fromFileEntities, src_account_id, tgt_account_id, suffix):
     status_file_name = str(src_account_id) + '_'
     if fromFile:
         status_file_name += utils.file_name_from(fromFile) + '_'
     if fromFileEntities:
         status_file_name += utils.file_name_from(fromFileEntities) + '_'
-    return status_file_name + str(tgt_account_id) + '_conditions.csv'
+    return status_file_name + str(tgt_account_id) + suffix + '.csv'
 
 
 def get_policy_entity_map(api_key, alert_policies, region=Endpoints.REGION_US):

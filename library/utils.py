@@ -134,15 +134,19 @@ def ensure_region(args):
 
 def ensure_source_region(args):
     sourceRegion = 'us'
-    if args.sourceRegion and len(args.sourceRegion) > 0:
+    if 'sourceRegion' in args and len(args.sourceRegion) > 0:
         sourceRegion = args.sourceRegion[0]
+    elif 'source_region' in args and args.source_region:
+        sourceRegion = args.source_region[0]
     return sourceRegion
 
 
 def ensure_target_region(args):
     targetRegion = 'us'
-    if args.targetRegion and len(args.targetRegion) > 0:
+    if 'targetRegion' in args and len(args.targetRegion) > 0:
         targetRegion = args.targetRegion[0]
+    elif 'target_region' in args and len(args.target_region) > 0:
+        targetRegion = args.target_region[0]
     return targetRegion
 
 

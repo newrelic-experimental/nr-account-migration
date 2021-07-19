@@ -16,8 +16,10 @@ import migratepolicies as mp
 
 TGT_ACCT = ''
 TGT_API_KEY = ''
+TGT_REGION = ''
 SRC_ACCT = ''
 SRC_API_KEY = ''
+SRC_REGION = ''
 SRC_INSIGHTS_KEY = ''
 
 
@@ -39,20 +41,20 @@ logger = m_logger.get_logger(os.path.basename(__file__))
 def cleanup():
     logger.info('Cleaning up test target account')
     logger.info('Deleting all monitors')
-    deleter.delete_all_monitors(TGT_API_KEY, TGT_ACCT)
+    deleter.delete_all_monitors(TGT_API_KEY, TGT_ACCT, TGT_REGION)
     time.sleep(1)
     logger.info('Deleting all secure credentials')
-    sec_credentials.delete_all(TGT_API_KEY, TGT_ACCT)
+    sec_credentials.delete_all(TGT_API_KEY, TGT_ACCT, TGT_REGION)
     time.sleep(1)
     logger.info('Deleting all alert policies')
-    ac.delete_all_policies(TGT_API_KEY, TGT_ACCT)
+    ac.delete_all_policies(TGT_API_KEY, TGT_ACCT, TGT_REGION)
     time.sleep(1)
     logger.info('Deleting all alert channels')
-    ac.delete_all_channels(TGT_API_KEY, TGT_ACCT)
+    ac.delete_all_channels(TGT_API_KEY, TGT_ACCT, TGT_REGION)
     time.sleep(1)
-    reset_app()
+    # reset_app()
     logger.info('deleting all target dashboards')
-    ec.delete_all_dashboards(TGT_API_KEY)
+    ec.delete_all_dashboards(TGT_API_KEY, TGT_ACCT, TGT_REGION)
 
 
 def reset_app():
@@ -123,8 +125,8 @@ def test_get_monitor_by_name():
 
 
 if __name__ == '__main__':
-    migrate_alerts()
-    # cleanup()
+    cleanup()
+    # migrate_alerts()
     # get_secure_credentials()
     # del_all_dashboards()
     # mig_dashboards()

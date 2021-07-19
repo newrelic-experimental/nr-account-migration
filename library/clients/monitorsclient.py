@@ -48,8 +48,29 @@ def get_monitor(api_key, monitor_id, region=Endpoints.REGION_US):
     return result
 
 
+def get_locations(api_key, region=Endpoints.REGION_US):
+    locations_url = Endpoints.of(region).SYNTH_LOCATIONS_URL
+    response = requests.get(locations_url, headers=setup_headers(api_key))
+    result = {'status': response.status_code }
+    if response.status_code == 200:
+        result['locations'] = response.json()
+    else:
+        logger.error('Error fetching locations ')
+        if response.text:
+            logger.error('Error message : ' + response.text)
+            result['error'] = response.text
+    return result
+
+
+def get_pvt_locations_by_id(tgt_locations):
+    pvt_locations_by_id = {}
+    for loc in tgt_locations:
+        if loc['private']:
+            pvt_locations_by_id[loc['name']] = loc
+    return pvt_locations_by_id
+
+
 def fetch_all_monitors(api_key, region=Endpoints.REGION_US):
-    print(region)
     query_params = {'offset': 0, 'limit': BATCH_SIZE}
     fetch_more = True
     all_monitors_def_json = []

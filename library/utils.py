@@ -134,7 +134,7 @@ def ensure_region(args):
 
 def ensure_source_region(args):
     sourceRegion = 'us'
-    if 'sourceRegion' in args and len(args.sourceRegion) > 0:
+    if 'sourceRegion' in args and args.sourceRegion:
         sourceRegion = args.sourceRegion[0]
     elif 'source_region' in args and args.source_region:
         sourceRegion = args.source_region[0]
@@ -143,9 +143,9 @@ def ensure_source_region(args):
 
 def ensure_target_region(args):
     targetRegion = 'us'
-    if 'targetRegion' in args and len(args.targetRegion) > 0:
+    if 'targetRegion' in args and args.targetRegion:
         targetRegion = args.targetRegion[0]
-    elif 'target_region' in args and len(args.target_region) > 0:
+    elif 'target_region' in args and args.target_region:
         targetRegion = args.target_region[0]
     return targetRegion
 
@@ -157,6 +157,7 @@ def error_and_exit(param_name, env_name):
 def error_message_and_exit(msg):
     logger.error(msg)
     sys.exit()
+
 
 def get_entity_type(app_condition):
     if app_condition['type'] in ['apm_app_metric', 'apm_jvm_metric']:

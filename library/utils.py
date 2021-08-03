@@ -127,14 +127,14 @@ def ensure_insights_query_key(args):
 
 def ensure_region(args):
     region = 'us'
-    if region in args and len(args.region) > 0:
+    if 'region' in args and args.region:
         region = args.region[0]
     return region
 
 
 def ensure_source_region(args):
     sourceRegion = 'us'
-    if 'sourceRegion' in args and len(args.sourceRegion) > 0:
+    if 'sourceRegion' in args and args.sourceRegion:
         sourceRegion = args.sourceRegion[0]
     elif 'source_region' in args and args.source_region:
         sourceRegion = args.source_region[0]
@@ -143,9 +143,9 @@ def ensure_source_region(args):
 
 def ensure_target_region(args):
     targetRegion = 'us'
-    if 'targetRegion' in args and len(args.targetRegion) > 0:
+    if 'targetRegion' in args and args.targetRegion:
         targetRegion = args.targetRegion[0]
-    elif 'target_region' in args and len(args.target_region) > 0:
+    elif 'target_region' in args and args.target_region:
         targetRegion = args.target_region[0]
     return targetRegion
 

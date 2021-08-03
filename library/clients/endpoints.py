@@ -9,9 +9,9 @@ class Endpoints:
 
     @classmethod
     def of(cls, region=REGION_US):
-        if region == cls.REGION_US:
+        if region.lower() == cls.REGION_US:
             return USEndpoints()
-        elif region == cls.REGION_EU:
+        elif region.lower() == cls.REGION_EU:
             return EUEndpoints()
         else:
             cls.logger.error("Incorrect region specified. Region can be either us or eu")

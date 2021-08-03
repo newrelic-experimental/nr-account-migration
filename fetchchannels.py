@@ -24,10 +24,7 @@ def configure_parser():
 def print_params(args, source_api_key, region):
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     logger.info("Using sourceApiKey : " + len(source_api_key[:-4]) * "*" + source_api_key[-4:])
-    if args.region and len(args.region) > 0:
-        logger.info("region : " + args.region[0])
-    else:
-        logger.info("region not passed : Defaulting to " + region)
+    logger.info("region : " + region)
 
 
 # fetches all channels restructures into a dictionary as below
@@ -66,7 +63,7 @@ def main():
     if args.sourceApiKey:
         args_api_key = args.sourceApiKey[0]
     region = utils.ensure_region(args)
-    print_params(args, source_api_key, region)
+    print_params(args, args_api_key, region)
     fetch_alert_channels(args_api_key, args.sourceAccount[0], region)
     logger.info("Time taken : " + str(time.time() - start_time) + "seconds")
 

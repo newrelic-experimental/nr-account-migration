@@ -27,20 +27,14 @@ def setup_params(parser):
     parser.add_argument('--targetRegion', type=str, nargs=1, required=False, help='targetRegion us(default) or eu')
 
 
-def print_args(src_api_key, sourceRegion, tgt_api_key, targetRegion, args):
+def print_args(args, src_api_key, src_region, tgt_api_key, tgt_region):
     logger.info("Using fromFile : " + args.fromFile[0])
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4]) * "*" + src_api_key[-4:])
-    if args.sourceRegion and len(args.sourceRegion) > 0:
-        logger.info("sourceRegion : " + args.sourceRegion[0])
-    else:
-        logger.info("sourceRegion not passed : Defaulting to " + sourceRegion)
+    logger.info("sourceRegion : " + src_region)
     logger.info("Using targetAccount : " + str(args.targetAccount[0]))
     logger.info("Using targetApiKey : " + len(tgt_api_key[:-4]) * "*" + tgt_api_key[-4:])
-    if args.targetRegion and len(args.targetRegion) > 0:
-        logger.info("targetRegion : " + args.targetRegion[0])
-    else:
-        logger.info("targetRegion not passed : Defaulting to " + targetRegion)
+    logger.info("targetRegion : " + tgt_region)
     
 
 def get_entity_by_name(api_key, app_name, region):
@@ -114,7 +108,7 @@ def main():
         utils.error_and_exit('targetApiKey', 'ENV_TARGET_API_KEY')
     src_region = utils.ensure_source_region(args)
     tgt_region = utils.ensure_target_region(args)
-    print_args(source_api_key, src_region, target_api_key, tgt_region, args)
+    print_args(args, source_api_key, src_region, target_api_key, tgt_region)
     migrate_apps(args.fromFile[0], args.sourceAccount[0], source_api_key, src_region,
                  args.targetAccount[0], target_api_key, tgt_region)
 

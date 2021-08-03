@@ -46,14 +46,11 @@ def setup_params():
 
 
 # prints args and also sets the fetch_latest flag
-def print_args(target_api_key, sourceRegion, targetRegion):
+def print_args(args, target_api_key, src_region, tgt_region):
     global fetch_latest
     logger.info("Using fromFile : " + args.fromFile[0])
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
-    if args.sourceRegion and len(args.sourceRegion) > 0:
-        logger.info("sourceRegion : " + args.sourceRegion[0])
-    else:
-        logger.info("sourceRegion not passed : Defaulting to " + sourceRegion)
+    logger.info("sourceRegion : " + src_region)
     if args.sourceApiKey:
         logger.info("Using sourceApiKey(ignored if --useLocal is passed) : " +
                     len(args.sourceApiKey[0][:-4])*"*"+args.sourceApiKey[0][-4:])
@@ -65,10 +62,7 @@ def print_args(target_api_key, sourceRegion, targetRegion):
     else:
         logger.info("Default fetch_latest :" + str(fetch_latest))
     logger.info("Using targetAccount : " + str(args.targetAccount[0]))
-    if args.targetRegion and len(args.targetRegion) > 0:
-        logger.info("targetRegion : " + args.targetRegion[0])
-    else:
-        logger.info("targetRegion not passed : Defaulting to " + targetRegion)
+    logger.info("targetRegion : " + tgt_region)
     logger.info("Using targetApiKey : " + len(target_api_key[:-4])*"*"+target_api_key[-4:])
     logger.info("Using timeStamp : " + args.timeStamp[0])
 
@@ -135,7 +129,7 @@ def main():
         utils.error_and_exit('target_api_key', 'ENV_TARGET_API_KEY')
     sourceRegion = utils.ensure_source_region(args)
     targetRegion = utils.ensure_target_region(args)
-    print_args(target_api_key, sourceRegion, targetRegion)
+    print_args(args, target_api_key, sourceRegion, targetRegion)
     migrate_monitors(args.fromFile[0], args.sourceAccount[0], sourceRegion, args.sourceApiKey[0], args.timeStamp[0],
                      args.targetAccount[0], targetRegion, target_api_key)
 

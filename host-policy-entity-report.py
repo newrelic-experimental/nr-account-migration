@@ -24,10 +24,7 @@ def configure_parser():
 def print_params(args, source_api_key, src_region):
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     logger.info("Using sourceApiKey : " + len(source_api_key[:-4])*"*"+source_api_key[-4:])
-    if args.sourceRegion and len(args.sourceRegion) > 0:
-        logger.info("region : " + args.sourceRegion[0])
-    else:
-        logger.info("region not passed : Defaulting to " + src_region)
+    logger.info("sourceRegion : " + src_region)
 
 
 def fetch_entities(src_account_id, src_api_key, entity_types, output_file, *,
@@ -57,7 +54,7 @@ def main():
     if not src_region:
         src_region = 'us'
     print_params(args, src_api_key, src_region)
-    _policy_results = ac.get_all_alert_policies(src_api_key)
+    _policy_results = ac.get_all_alert_policies(src_api_key, src_region)
     policies = _policy_results['policies']
     for policy in policies:
         _condition_results = ac.get_infra_conditions(src_api_key, policy['id'], src_region)

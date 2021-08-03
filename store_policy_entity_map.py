@@ -24,10 +24,7 @@ def configure_parser():
 
 def print_params(args, src_api_key, src_region):
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
-    if args.sourceRegion and len(args.sourceRegion) > 0:
-        logger.info("sourceRegion : " + args.sourceRegion[0])
-    else:
-        logger.info("sourceRegion not passed : Defaulting to " + src_region)
+    logger.info("sourceRegion : " + src_region)
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4]) * "*" + src_api_key[-4:])
     logger.info("Using useLocal : " + str(args.useLocal))
 

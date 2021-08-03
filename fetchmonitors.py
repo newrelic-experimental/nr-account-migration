@@ -38,14 +38,12 @@ def setup_params():
                                                                  'This will be created in output directory')
 
 
-def print_params():
+def print_params(args, src_api_key, region):
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
-    logger.info("Using sourceApiKey : " + len(source_api_key[:-4])*"*"+source_api_key[-4:])
-    if args.region and len(args.region) > 0:
-        logger.info("region : " + args.region[0])
-    else:
-        logger.info("region not passed : Defaulting to " + region)
-    if args.insightsQueryKey and len(args.insightsQueryKey) > 0:
+    logger.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*"+src_api_key[-4:])
+    logger.info("region : " + region)
+
+    if 'insightsQueryKey' in args and args.insightsQueryKey:
         logger.info("Using insightsQueryKey to fetch secure credentials : " +
                     len(args.insightsQueryKey[0][:-4]) * "*" + args.insightsQueryKey[0][-4:])
     else:
@@ -113,6 +111,6 @@ if __name__ == '__main__':
     if args.insightsQueryKey:
         args_insights_key = args.insightsQueryKey[0]
     region = utils.ensure_region(args)
-    print_params()
+    print_params(args, args.sourceApiKey[0], region)
     fetch_monitors(source_api_key, str(args.sourceAccount[0]), args.toFile[0], args_insights_key, )
     logger.info("Time taken : " + str(time.time() - start_time) + "seconds")

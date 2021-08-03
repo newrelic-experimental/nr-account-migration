@@ -35,10 +35,7 @@ def configure_parser():
 def print_params(args, source_api_key, entity_types, src_region):
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     logger.info("Using sourceApiKey : " + len(source_api_key[:-4])*"*"+source_api_key[-4:])
-    if args.sourceRegion and len(args.sourceRegion) > 0:
-        logger.info("region : " + args.sourceRegion[0])
-    else:
-        logger.info("region not passed : Defaulting to " + src_region)
+    logger.info("sourceRegion : " + src_region)
     logger.info("Using entity types : " + str(entity_types))
     if args.tagName:
         logger.info("Using tag name " + str(args.tagName[0]) + " and tag value " + str(args.tagValue[0]))

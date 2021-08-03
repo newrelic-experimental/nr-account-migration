@@ -175,16 +175,10 @@ def print_args(args, src_api_key, src_region, tgt_api_key, tgt_region):
     if (args.entity_file):
         logger.info("Using fromFileEntities : " + args.entity_file[0])
     logger.info("Using sourceAccount : " + args.source_account_id[0])
-    if args.sourceRegion and len(args.sourceRegion) > 0:
-        logger.info("sourceRegion : " + args.sourceRegion[0])
-    else:
-        logger.info("sourceRegion not passed : Defaulting to " + src_region)
+    logger.info("sourceRegion : " + src_region)
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*"+src_api_key[-4:])
     logger.info("Using targetAccount : " + args.target_account_id[0])
-    if args.targetRegion and len(args.targetRegion) > 0:
-        logger.info("targetRegion : " + args.targetRegion[0])
-    else:
-        logger.info("targetRegion not passed : Defaulting to " + tgt_region)
+    logger.info("targetRegion : " + tgt_region)
     logger.info("Using targetApiKey : " + len(tgt_api_key[:-4]) * "*" + tgt_api_key[-4:])
     if args.match_source_state:
         logger.info("Matching condition enable/disable state in target account instead of disabling all new conditions")
@@ -454,7 +448,7 @@ def main():
         sys.exit()
     src_region = utils.ensure_source_region(args)
     tgt_region = utils.ensure_target_region(args)
-    print_args(src_api_key, src_region, tgt_api_key, tgt_region)
+    print_args(args, src_api_key, src_region, tgt_api_key, tgt_region)
     migrate(
         policy_file,
         entity_file,

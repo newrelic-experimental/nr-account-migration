@@ -30,10 +30,7 @@ def configure_parser():
 def print_args(args, region):
     logger.info("Using targetApiKey : " + len(args.targetApiKey[0][:-4])*"*"+args.targetApiKey[0][-4:])
     logger.info("Using targetAccount : " + str(args.targetAccount[0]))
-    if args.region and len(args.region) > 0:
-        logger.info("region : " + args.region[0])
-    else:
-        logger.info("region not passed : Defaulting to " + region)
+    logger.info("region : " + region)
 
 
 def delete(monitors, target_acct, tgt_api_key, region):

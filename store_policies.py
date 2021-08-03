@@ -25,10 +25,7 @@ def configure_parser():
 def print_args(args, src_api_key, src_region):
     log.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     log.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*" + src_api_key[-4:])
-    if args.sourceRegion and len(args.sourceRegion) > 0:
-        log.info("sourceRegion : " + args.sourceRegion[0])
-    else:
-        log.info("sourceRegion not passed : Defaulting to " + src_region)
+    log.info("sourceRegion : " + src_region)
 
 
 def store_alert_policies(src_account, src_api_key, src_region):

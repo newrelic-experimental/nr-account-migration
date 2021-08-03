@@ -32,10 +32,7 @@ def print_args(args, region):
     logger.info("Using targetApiKey : " + args.targetApiKey[0])
     logger.info("Using targetAccount : " + str(args.targetAccount[0]))
     logger.info("Using timeStamp : " + args.timeStamp[0])
-    if args.region and len(args.region) > 0:
-        logger.info("region : " + args.region[0])
-    else:
-        logger.info("region not passed : Defaulting to " + region)
+    logger.info("region : " + region)
 
 
 def delete(monitor_definitions, target_account, tgt_api_key, region):

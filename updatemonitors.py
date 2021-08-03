@@ -34,14 +34,11 @@ def ensure_target_api_key(args):
     return api_key
 
 
-def print_args(args, targetRegion):
+def print_args(args, tgt_region):
     logger.info("Using fromFile : " + args.fromFile[0])
     logger.info("Using targetApiKey : " + args.targetApiKey[0])
     logger.info("Using targetAccount : " + str(args.targetAccount[0]))
-    if args.targetRegion and len(args.targetRegion) > 0:
-        logger.info("targetRegion : " + args.targetRegion[0])
-    else:
-        logger.info("targetRegion not passed : Defaulting to " + targetRegion)
+    logger.info("targetRegion : " + tgt_region)
     logger.info("Using timeStamp : " + args.timeStamp[0])
     if args.renamePrefix:
         logger.info("Monitors will be prefixed with : " + args.renamePrefix[0])

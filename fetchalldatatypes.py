@@ -56,13 +56,12 @@ def configure_parser(is_standalone: bool = True):
     )
     parser.add_argument(
         '--region',
-        '--nr_region',
         nargs=1,
         type=str,
         required=False,
         default='us',
         help='NR Region us | eu (default : us)',
-        dest='nr_region'
+        dest='region'
     )
     return parser
 

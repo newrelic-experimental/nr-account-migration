@@ -195,8 +195,8 @@ def create_output_file(file_name):
     logger.debug("Creating output file")
     output_dir = Path("output")
     output_dir.mkdir(mode=0o777, exist_ok=True)
-    monitor_names_file = output_dir / file_name
-    return create_file(monitor_names_file)
+    output_file = output_dir / file_name
+    return create_file(output_file)
 
 
 def sanitize(name):

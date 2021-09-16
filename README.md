@@ -413,6 +413,7 @@ lambda         | Pass this flag to list Lambda entities
 mobile         | Pass this flag to list Mobile entities
 securecreds    | Pass this flag to list Synthetic secure credential entities
 synthetics     | Pass this flag to list Synthetic monitor entities
+workload       | Pass this flag to list Workloads
 
 
 ####  12) python3 deletemonitors.py

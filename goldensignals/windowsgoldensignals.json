@@ -1,0 +1,51 @@
+{
+  "domain": "INFRA",
+  "type": "HOST",
+  "metrics": [
+    {
+      "eventId": "entityGuid",
+      "facet": "entityName",
+      "from": "SystemSample",
+      "name": "cpuUsage",
+      "select": "average(cpuPercent)",
+      "title": "CPU usage (%)",
+      "where": "operatingSystem = 'windows'"
+    },
+    {
+      "eventId": "entityGuid",
+      "facet": "entityName",
+      "from": "SystemSample",
+      "select": "average(memoryUsedPercent)",
+      "name": "memoryUsage",
+      "title": "Memory usage (%)",
+      "where": "operatingSystem = 'windows'"
+    },
+    {
+      "eventId": "entityGuid",
+      "facet": "entityName",
+      "from": "SystemSample",
+      "select": "average(loadAverageFiveMinute)",
+      "name": "loadAverageFiveMinute",
+      "title": "Load Average 5 Minutes",
+      "where": "operatingSystem = 'windows'"
+    },
+    {
+      "eventId": "entityGuid",
+      "facet": "entityName",
+      "from": "StorageSample",
+      "select": "average(diskUsedPercent)",
+      "name": "rootDiskUsedPercentage",
+      "title": "C: Drive Used (%)",
+      "where": "operatingSystem = 'windows' AND mountPoint= 'C:'"
+    },
+    {
+      "eventId": "entityGuid",
+      "facet": "entityName",
+      "from": "SystemSample",
+      "select": "average(swapUsedBytes/swapTotalBytes*100)",
+      "name": "swapUsedPercentage",
+      "title": "Swap Used (%)",
+      "where": "operatingSystem = 'windows'"
+    }
+  ]
+}

@@ -27,6 +27,8 @@ def configure_parser():
     parser.add_argument('--infraint', dest='infraint', required=False, action='store_true', help='Pass --infraint to list matching Infrastructure integration entities')
     parser.add_argument('--mobile', dest='mobile', required=False, action='store_true', help='Pass --mobile to list matching Mobile application entities')
     parser.add_argument('--lambda', dest='lambda_function', required=False, action='store_true', help='Pass --lambda to list matching Lambda function entities')
+    parser.add_argument('--workload', dest='workload', required=False, action='store_true',
+                        help='Pass --workloads to list matching Workload entities')
     parser.add_argument('--tagName', nargs=1, required=False, help='(Optional) Tag name to use when filtering results. Required if --tagValue is passed.')
     parser.add_argument('--tagValue', nargs=1, required=False, help='(Optional) Tag value to use when filtering results. Required if --tagName is passed.')
     return parser
@@ -63,6 +65,8 @@ def parse_entity_types(args):
         entity_types.append(ec.MOBILE_APP)
     if args.lambda_function:
         entity_types.append(ec.INFRA_LAMBDA)
+    if args.workload:
+        entity_types.append(ec.WORKLOAD)
     return entity_types
 
 

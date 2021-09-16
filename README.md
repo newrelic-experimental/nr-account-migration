@@ -56,7 +56,7 @@ APM Settings
 
 ## Getting Started
 
-The table below lists the scripts that can be used for different migration use cases.
+The table below lists the scripts that can be used for different migration and other use cases.
 
 These scripts, in some cases, require sequential execution as they build the data necessary to migrate entities from one account to another.
 
@@ -72,7 +72,8 @@ The details for each script is provided in the next Usage section.
 | 5.  | Migrate Dashboards | migrate_dashboards.py :arrow_right: migratetags.py |
 | 6.  | Update Monitors | updatemonitors.py | 
 | 7.  | Delete Monitors | deletemonitors.py | 
-| 8.  | Migrate Tags | migratetags.py
+| 8.  | Migrate Tags | migratetags.py |
+| 9.  | Update Workload Golden Signals | wlgoldensignals.py |
 
 
 The following entities and configurations can be migrated:
@@ -489,6 +490,40 @@ usage: fetchalldatatypes.py  --hostsFile HOSTS_FILE --sourceAccount SOURCE_ACCOU
 output : output/<entityName>.csv file for each entityName with names of metrics and events 
 
 received from that entity
+
+####  19) python3 wlgoldensignals.py
+Automated script for overriding and resetting golden signals for workloads. 
+####Note: By default workloads only display 4 golden signals.
+
+usage: wlgoldensignals.py --targetAccount TARGETACCOUNT --targetApiKey  TARGETAPIKEY [--targetRegion TARGETREGION]
+                          [--tagName TAGNAME] [--tagValue TAGVALUE] [--goldenSignalsJson GOLDENSIGNALSJSON]
+                          [--resetGoldenSignals] [--domain DOMAIN] [--type TYPE]
+
+Parameter      | Note
+-------------- | --------------------------------------------------
+targetAccount  | Account containing the workloads
+targetRegion   | Optional region us (default) or eu
+targetApiKey   | User API Key for targetAccount
+tagName        | Tag name to use to find matching workloads 
+tagValue       | Tag value to use to find matching workloads
+goldenSignalsJson     | File stored under ./goldensignals directory that contains list of metrics in JSON format. [./goldensignals/linuxgoldensignals.json](goldensignals/linuxgoldensignals.json)
+resetGoldenSignals | Pass this flag to reset the override golden signals for a domain/type combination
+domain | domain for which to reset the golden signals APM , BROWSER , INFRA , MOBILE , SYNTH , EXT
+type | type of entity APPLICATION , DASHBOARD , HOST , MONITOR , WORKLOAD
+
+#### example 1: override golden signals
+python3 wlgoldensignals.py --targetAccount ACCT_ID --targetApiKey USER_API_KEY --goldenSignalsJson windowsgoldensignals.json --tagName Environment --tagValue WindowsProduction
+The above will find workloads having tag Environment=WindowsProduction and then for each workload 
+override the golden signals as specified in goldensignals/windowsgoldensignals.json for entities of domain INFRA and type HOST as specified in the json file
+
+#### example 2: reset override golden signals
+python3 wlgoldensignals.py --targetAccount ACCT_ID --targetApiKey USER_API_KEY --resetGoldenSignals --tagName Environment --tagValue WindowsProduction --domain INFRA --type HOST
+The above will find workloads having tag Environment=WindowsProduction and then for each workload 
+reset the golden signals for domain INFRA and type HOST
+
+
+
+
 
  
 ### Logging

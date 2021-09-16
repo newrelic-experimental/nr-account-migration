@@ -158,6 +158,7 @@ def error_message_and_exit(msg):
     logger.error(msg)
     sys.exit()
 
+
 def get_entity_type(app_condition):
     if app_condition['type'] in ['apm_app_metric', 'apm_jvm_metric']:
         return ec.APM_APP

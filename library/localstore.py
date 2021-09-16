@@ -166,6 +166,19 @@ def load_json_file(account_id, dir_name, json_file_name):
     return file_json
 
 
+def load_json_from_file(dir_name, json_file_name):
+    # Same as load_json_file without the hard coded DB_DIR/account_id prefixing
+    file_json = {}
+    json_dir = Path(dir_name)
+    if json_dir.exists():
+        json_file = json_dir / json_file_name
+        if json_file.exists():
+            file_json = json.loads(json_file.read_text())
+    else:
+        logger.error(dir_name + " does not exist.")
+    return file_json
+
+
 def load_monitor_labels(account_id):
     return load_json_file(account_id, LABELS_DIR, MONITOR_LABELS_FILE)
 
@@ -195,8 +208,8 @@ def create_output_file(file_name):
     logger.debug("Creating output file")
     output_dir = Path("output")
     output_dir.mkdir(mode=0o777, exist_ok=True)
-    monitor_names_file = output_dir / file_name
-    return create_file(monitor_names_file)
+    output_file = output_dir / file_name
+    return create_file(output_file)
 
 
 def sanitize(name):

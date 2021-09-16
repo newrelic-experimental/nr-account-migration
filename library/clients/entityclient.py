@@ -17,6 +17,7 @@ DASHBOARD = 'DASHBOARD'
 INFRA_HOST = 'INFRA_HOST'
 INFRA_INT = 'INFRA_INT'
 INFRA_LAMBDA = 'INFRA_LAMBDA'
+WORKLOAD = 'WORKLOAD'
 
 # Mapping to entityType tag values
 ent_type_lookup = {}
@@ -160,6 +161,19 @@ def entity_outline(entity_type):
                     values
                 }
             } '''
+    if entity_type == WORKLOAD:
+        return ''' ... on WorkloadEntityOutline {
+                guid
+                name
+                type
+                permalink
+                entityType
+                accountId
+                tags {
+                        key
+                        values
+                } 
+              }'''
 
 
 def search_query_payload(entity_type, entity_name, acct_id = None):
@@ -339,6 +353,8 @@ def get_entities_payload(entity_type, acct_id = None, nextCursor = None, tag_nam
         gql_search_type = 'HOST'
     elif entity_type == INFRA_LAMBDA:
         gql_search_type = 'AWSLAMBDAFUNCTION'
+    elif entity_type == WORKLOAD:
+        gql_search_type = 'WORKLOAD'
 
     entity_search_query = '''query($matchingCondition: String!) { 
                                     actor { 
@@ -381,7 +397,6 @@ def gql_get_entities_by_type(api_key, entity_type, acct_id=None, tag_name=None, 
 
     while not done:
         payload = get_entities_payload(entity_type, acct_id, nextCursor, tag_name, tag_value)
-
         response = requests.post(Endpoints.of(region).GRAPHQL_URL, headers=gql_headers(api_key), data=json.dumps(payload))
         if response.status_code != 200:
             done = True
@@ -636,6 +651,7 @@ def tags_diff(src_tags, tgt_tags):
         if match_found == False:
             tags_arr.append(src_tag)
     return tags_arr
+
 
 def mutate_tags_payload(entity_guid, arr_tags, mutate_action):
     apply_tags_query = '''mutation($entityGuid: EntityGuid!, $tags: [TaggingTagInput!]!) 

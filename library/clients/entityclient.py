@@ -652,6 +652,7 @@ def tags_diff(src_tags, tgt_tags):
             tags_arr.append(src_tag)
     return tags_arr
 
+
 def mutate_tags_payload(entity_guid, arr_tags, mutate_action):
     apply_tags_query = '''mutation($entityGuid: EntityGuid!, $tags: [TaggingTagInput!]!) 
                             {''' + mutate_action + '''(guid: $entityGuid, tags: $tags) {

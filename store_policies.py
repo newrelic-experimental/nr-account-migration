@@ -32,6 +32,16 @@ def store_alert_policies(src_account, src_api_key, src_region):
     log.info('Starting store alert policies.')
     policies = ac.get_all_alert_policies(src_api_key, src_region)
     store.save_alert_policies(src_account, policies)
+    policy_file_name = str(src_account)+'_policies.csv'
+    policy_names_file = store.create_output_file(policy_file_name)
+    with policy_names_file.open('a') as policy_names_out:
+        for policy in policies['policies']:
+            policy_name = policy['name']
+            policy_name = store.sanitize(policy_name)
+            policy_names_out.write(policy_name + "\n")
+        policy_names_out.close()
+    log.info("Policy names stored in " + policy_file_name)
+    log.info("Policies JSON stored in " + "db/"+str(src_account)+"/alert_policies/alert_policies.json")
     log.info('Finished store alert policies.')
 
 

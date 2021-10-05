@@ -7,6 +7,7 @@ import library.localstore as store
 import re
 import library.clients.entityclient as ec
 from library.clients.endpoints import Endpoints
+import library.clients.gql as nerdGraph
 
 logger = migrationlogger.get_logger(os.path.basename(__file__))
 
@@ -34,6 +35,10 @@ POLICY_NAME = 'policy_name'
 
 def setup_headers(api_key):
     return {'Api-Key': api_key, 'Content-Type': 'application/json'}
+
+
+def gql_headers(api_key):
+    return {'api-key': api_key, 'Content-Type': 'application/json'}
 
 
 def get_all_alert_policies(api_key, region=Endpoints.REGION_US):

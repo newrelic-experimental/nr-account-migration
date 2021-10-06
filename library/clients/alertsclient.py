@@ -98,6 +98,22 @@ def nrql_conditions_by_name(api_key, account_id, policy_id, region):
     }
 
 
+def nrql_conditions_by_id(api_key, account_id, policy_id, region):
+    conditions_by_id = {}
+    result = get_nrql_conditions(api_key, account_id, policy_id, region)
+    if result['error']:
+        return {
+            'error': result['error'],
+            'conditions_by_name': None
+        }
+    for nrql_condition in result['conditions']:
+        conditions_by_id[nrql_condition['id']] = nrql_condition
+    return {
+        'error': result['error'],
+        'conditions_by_id': conditions_by_id
+    }
+
+
 def create_nrql_condition(
     api_key,
     region,
@@ -350,6 +366,14 @@ def infra_conditions_by_name(api_key, policy_id, region):
     for infra_condition in infra_conditions:
         conditions_by_name[infra_condition['name']] = infra_condition
     return conditions_by_name
+
+
+def infra_conditions_by_id(api_key, policy_id, region):
+    conditions_by_id = {}
+    infra_conditions = get_infra_conditions(api_key, policy_id, region)[INFRA_CONDITIONS]
+    for infra_condition in infra_conditions:
+        conditions_by_id[infra_condition['id']] = infra_condition
+    return conditions_by_id
 
 
 def get_alert_status_file_name(fromFile, fromFileEntities, src_account_id, tgt_account_id, suffix):

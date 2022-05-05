@@ -25,8 +25,13 @@ def configure_loglevel(args):
     m_logger.set_log_level(log_level)
 
 
+# hack setting up both API key headers so should work for both REST and USER API Keys
 def setup_headers(api_key):
-    return {'Api-Key': api_key, 'Content-Type': 'application/json'}
+    return {'Api-Key': api_key, 'X-Api-Key': api_key, 'Content-Type': 'application/json'}
+
+
+def setup_infra_headers(api_key):
+    return {'X-Api-Key': api_key, 'Content-Type': 'application/json'}
 
 
 def get_next_url(rsp_headers):
@@ -53,8 +58,12 @@ def get_paginated_entities(api_key, fetch_url, entity_key, params={}, pageType=N
     curr_fetch_url = fetch_url
     all_entities = {'response_count': 0, entity_key: []}
     while another_page and error is False:
+        req_headers = setup_headers(api_key)
+        if 'infra-api' in curr_fetch_url:
+            req_headers = setup_infra_headers(api_key)
         resp = requests.get(curr_fetch_url, headers=setup_headers(api_key), params=params)
         if resp.status_code == 200:
+            logger.info(resp.text)
             resp_json = json.loads(resp.text)
             all_entities[entity_key].extend(resp_json[entity_key])
             all_entities['response_count'] = all_entities['response_count'] + len(resp_json[entity_key])
@@ -112,6 +121,16 @@ def ensure_source_api_key(args):
         api_key = args.source_api_key[0]
     else:
         api_key = os.environ.get('ENV_SOURCE_API_KEY')
+    return api_key
+
+
+def ensure_user_api_key(args):
+    if 'userApiKey' in args and args.userApiKey:
+        api_key = args.userApiKey[0]
+    elif 'user_api_key' in args and args.user_api_key:
+        api_key = args.user_api_key[0]
+    else:
+        api_key = os.environ.get('ENV_USER_API_KEY')
     return api_key
 
 

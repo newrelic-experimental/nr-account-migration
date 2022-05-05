@@ -117,6 +117,17 @@ def save_host_data_csv(host_name: str, all_host_data: list):
         csv_writer.writerows(host_data + [""] for host_data in all_host_data)
 
 
+def save_feature_settings_csv(fs_data: list):
+    output_dir = Path("output")
+    fs_file_name = 'feature_settings.csv'
+    fs_data_file = output_dir / fs_file_name
+    create_file(fs_data_file)
+    with open(str(fs_data_file), 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile, delimiter=',',
+                                   quotechar='"', quoting=csv.QUOTE_ALL)
+        csv_writer.writerows(host_data + [""] for host_data in fs_data)
+
+
 def load_names(from_file):
     names = []
     with open(from_file) as input_names:

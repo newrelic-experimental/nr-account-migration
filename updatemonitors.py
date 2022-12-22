@@ -18,8 +18,8 @@ def setup_params(parser):
     parser.add_argument('--targetRegion', type=str, nargs=1, required=False, help='targetRegion us(default) or eu')
     parser.add_argument('--timeStamp', nargs=1, required=True, help='Timestamp of the pre-fetched monitors')
     parser.add_argument('--renamePrefix', nargs=1, required=False, help='Pass prefix to rename monitors')
-    parser.add_argument('--disable', dest='disable', required=False, action='store_true',
-                        help='Pass --disable to disable the monitors')
+    parser.add_argument('--disable', dest='disable', required=False, action='store_true', help='Pass --disable to disable the monitors')
+    parser.add_argument('--enable', dest='enable', required=False, action='store_true', help='Pass --enable to enable the monitors')
 
 
 def ensure_target_api_key(args):
@@ -47,9 +47,11 @@ def print_args(args, tgt_region):
                     + args.targetApiKey[0][-4:])
     if args.disable:
         logger.info("Disable Monitors : " + str(args.disable))
+    if args.enable:
+        logger.info("Enable Monitors : " + str(args.enable))
 
 
-def update_monitors(api_key, account_id, from_file, time_stamp, prefix, disable_flag, tgt_region):
+def update_monitors(api_key, account_id, from_file, time_stamp, prefix, disable_flag, enable_flag, tgt_region):
     update_list = localstore.load_names(from_file)
     all_monitors = localstore.load_monitors(account_id, time_stamp, update_list)
     all_monitor_status = {}
@@ -65,6 +67,9 @@ def update_monitors(api_key, account_id, from_file, time_stamp, prefix, disable_
         if disable_flag:
             update_json['status'] = 'DISABLED'
             all_monitor_status[monitor_name][updatestatus.UPDATED_STATUS] = 'DISABLED'
+        if enable_flag:
+            update_json['status'] = 'ENABLED'
+            all_monitor_status[monitor_name][updatestatus.UPDATED_STATUS] = 'ENABLED'
         result = monitorsclient.update(api_key, monitor_id, update_json, monitor_name, tgt_region)
         update_status(all_monitor_status, monitor_name, result)
     update_status_csv = str(account_id) + "_" + utils.file_name_from(from_file) + "_updated_monitors.csv"
@@ -83,20 +88,23 @@ def main():
     parser = argparse.ArgumentParser(description='Update Synthetic Monitors')
     setup_params(parser)
     args = parser.parse_args()
-    if not args.renamePrefix and not args.disable:
-        logger.error("Missing update directive: Either --renamePrefix or --disable flag or both must be passed")
+    if not args.renamePrefix and not args.disable and not args.enable:
+        logger.error("Missing update directive: One or more of --renamePrefix, --disable, or --enable flags must be passed")
         sys.exit(1)
     target_api_key = ensure_target_api_key(args)
     rename_prefix = ''
     disable = False
+    enable = False
     if args.renamePrefix:
         rename_prefix = args.renamePrefix[0]
     if args.disable:
         disable = True
+    if args.enable:
+        enable = True
     targetRegion = utils.ensure_target_region(args)
     print_args(args, targetRegion)
     update_monitors(target_api_key, args.targetAccount[0], args.fromFile[0], args.timeStamp[0],
-                    rename_prefix, disable, targetRegion)
+                    rename_prefix, disable, enable, targetRegion)
 
 
 if __name__ == '__main__':

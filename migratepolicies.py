@@ -159,6 +159,7 @@ def update_notification_channels(tgt_api_key, tgt_region, source_policy, target_
     if not loaded_src_channels['channels_by_policy_id']:
         logger.info('No notification channel subscriptions')
         return
+    src_channel_ids = []
     if src_policy_id in loaded_src_channels['channels_by_policy_id']:
         src_channel_ids = loaded_src_channels['channels_by_policy_id'][src_policy_id]
     src_channels = []

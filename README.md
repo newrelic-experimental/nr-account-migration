@@ -151,7 +151,7 @@ During migratepolicies the stored alert_channels can be used by passing --useLoc
 
 ####  4) python3 migratemonitors.py
 
-`usage: migratemonitors.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT  [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] --timeStamp TIMESTAMP [--useLocal]`
+`usage: migratemonitors.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT  [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] --timeStamp TIMESTAMP [--useLocal] [--minionMappingFile]`
 
 Parameter     | Note
 ------------- | --------------------------------------------------------------------------------------------------------
@@ -163,7 +163,8 @@ targetAccount | Account to migrate monitors to
 targetRegion  | Optional region us (default) or eu
 targetApiKey  | This should be a User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 timeStamp     | must match the timeStamp generated in fetchmonitors , used when useLocal flag is passed
-useLocal      | By default monitors are fetched from sourceAccount. A pre-fetched copy can be used by passing this flag.
+useLocal      | By default monitors are fetched from sourceAccount. A pre-fetched copy can be used by passing this flag
+minionMappingFile  | Map (private) minion names to alternatives using a dictionary in a [JSON file](minion_mapping.json).
 
 **useLocal:** The monitors will be picked up from db/sourceAccount/monitors/timeStamp
 

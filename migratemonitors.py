@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import sys
 import time
@@ -43,7 +44,7 @@ def setup_params():
 
     parser.add_argument('--useLocal', dest='useLocal', required=False, action='store_true',
                         help='By default latest monitors are fetched. Pass this argument to useLocal')
-
+    parser.add_argument('--minionMappingFile', nargs=1, required=False, help='Map (private) minion names to alternatives using a dictionary in a json file')
 
 # prints args and also sets the fetch_latest flag
 def print_args(args, target_api_key, src_region, tgt_region):
@@ -54,7 +55,6 @@ def print_args(args, target_api_key, src_region, tgt_region):
     if args.sourceApiKey:
         logger.info("Using sourceApiKey(ignored if --useLocal is passed) : " +
                     len(args.sourceApiKey[0][:-4])*"*"+args.sourceApiKey[0][-4:])
-
     if args.useLocal:
         fetch_latest = False
         logger.info("Using useLocal : " + str(args.useLocal))
@@ -65,6 +65,8 @@ def print_args(args, target_api_key, src_region, tgt_region):
     logger.info("targetRegion : " + tgt_region)
     logger.info("Using targetApiKey : " + len(target_api_key[:-4])*"*"+target_api_key[-4:])
     logger.info("Using timeStamp : " + args.timeStamp[0])
+    if args.minionMappingFile:
+        logger.info("Using minionMappingFile : " + args.minionMappingFile[0])
 
 
 def ensure_target_api_key():
@@ -79,7 +81,7 @@ def ensure_target_api_key():
     return target_api_key
 
 
-def migrate(all_monitors_json, src_api_key, src_region, tgt_api_key, tgt_region):
+def migrate(all_monitors_json, src_api_key, src_region, tgt_api_key, tgt_region, minion_mapping_file=None):
     monitor_status = {}
     scripted_monitors = []
     for monitor_json in all_monitors_json:
@@ -93,6 +95,15 @@ def migrate(all_monitors_json, src_api_key, src_region, tgt_api_key, tgt_region)
                 logger.error(result)
                 continue
             monitor_json['definition'] = result['monitor']
+        if minion_mapping_file:
+            # reading the data from the file
+            with open(minion_mapping_file, 'r') as mapping_file:
+                data = mapping_file.read()
+            mappings = json.loads(data)
+            for original_location in monitor_json['definition']['locations']:
+                if original_location in mappings.keys():
+                    revised_location = mappings[original_location]
+                    monitor_json['definition']['locations'] = [location.replace(original_location, revised_location) for location in monitor_json['definition']['locations']]
         post_monitor_definition(tgt_api_key, monitor_name, monitor_json, monitor_status, tgt_region)
         if monitortypes.is_scripted(monitor_json['definition']):
             scripted_monitors.append(monitor_json)
@@ -109,11 +120,11 @@ def migrate(all_monitors_json, src_api_key, src_region, tgt_api_key, tgt_region)
     return monitor_status
 
 
-def migrate_monitors(from_file, src_acct, src_region, src_api_key, time_stamp, tgt_acct_id, tgt_region, tgt_api_key):
+def migrate_monitors(from_file, src_acct, src_region, src_api_key, time_stamp, tgt_acct_id, tgt_region, tgt_api_key, minion_mapping_file=None):
     monitor_names = store.load_names(from_file)
     logger.debug(monitor_names)
     all_monitors_json = store.load_monitors(src_acct, time_stamp, monitor_names)
-    monitor_status = migrate(all_monitors_json, src_api_key, src_region, tgt_api_key, tgt_region)
+    monitor_status = migrate(all_monitors_json, src_api_key, src_region, tgt_api_key, tgt_region, minion_mapping_file)
     logger.debug(monitor_status)
     file_name = utils.file_name_from(from_file)
     status_csv = src_acct + "_" + file_name + "_" + tgt_acct_id + ".csv"
@@ -130,8 +141,9 @@ def main():
     sourceRegion = utils.ensure_source_region(args)
     targetRegion = utils.ensure_target_region(args)
     print_args(args, target_api_key, sourceRegion, targetRegion)
+    minion_mapping_file = args.minionMappingFile[0] if args.minionMappingFile else None
     migrate_monitors(args.fromFile[0], args.sourceAccount[0], sourceRegion, args.sourceApiKey[0], args.timeStamp[0],
-                     args.targetAccount[0], targetRegion, target_api_key)
+                     args.targetAccount[0], targetRegion, target_api_key, minion_mapping_file)
 
 
 if __name__ == '__main__':

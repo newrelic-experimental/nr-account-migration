@@ -151,7 +151,7 @@ During migratepolicies the stored alert_channels can be used by passing --useLoc
 
 ####  4) python3 migratemonitors.py
 
-`usage: migratemonitors.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT  [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] --timeStamp TIMESTAMP [--useLocal] [--minionMappingFile]`
+`usage: migratemonitors.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT  [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] --timeStamp TIMESTAMP [--useLocal] [--minionMappingFile MINIONMAPPINGFILE]`
 
 Parameter     | Note
 ------------- | --------------------------------------------------------------------------------------------------------
@@ -326,19 +326,30 @@ usage: migrate_apm.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourc
 
 ####  8) python3 migrate_dashboards.py
 
-usage: migrate_dashboards.py [-h] --fromFile FROMFILE --sourceAccount [--sourceRegion SOURCEREGION] 
+`usage: migrate_dashboards.py [-h] --fromFile FROMFILE --sourceAccount [--sourceRegion SOURCEREGION] 
                              SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
                              --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] 
-                             [--targetApiKey TARGETAPIKEY]
+                             [--targetApiKey TARGETAPIKEY] [--accountMappingFile ACCOUNTMAPPINGFILE]`
 
 Migrate dashboards between accounts, including modifying queries to point to the new target account. The fetchentities.py script can help create the file to pass with fromFile.
 
+Parameter     | Note
+------------- | --------------------------------------------------------------------------------------------------------
+fromFile      | Must contain dashboard names one per line. The fetchentities.py script can be used to help generate this list of dashboards.
+sourceAccount | Account to fetch dashboards from
+sourceRegion  | Optional region us (default) or eu
+sourceApiKey  | This should be a User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Dashboards
+targetAccount | Account to migrate monitors to
+targetRegion  | Optional region us (default) or eu
+targetApiKey  | This should be a User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Dashboards
+accountMappingFile  | Map account ids to alternatives using a dictionary in a [JSON file](account_mapping.json). Useful when moving between regions, e.g. from the us to eu region.
+
 ####  9) python3 migratetags.py
 
-usage: migratetags.py [-h] --fromFile FROMFILE --sourceAccount
+`usage: migratetags.py [-h] --fromFile FROMFILE --sourceAccount
                             SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY
                             --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION]  --targetApiKey TARGETAPIKEY
-                            [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics]
+                            [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics]`
 
 Migrate entity tags between entities with matching names and entity types. 
 

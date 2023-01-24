@@ -71,11 +71,7 @@ def parse_entity_types(args):
 
 
 def fetch_entities(src_account_id, src_api_key, entity_types, output_file, *,
-<<<<<<< Updated upstream
-                   tag_name=None, tag_value=None, src_region='us'):
-=======
                    tag_name=None, tag_value=None, src_region='us', assessment=None):
->>>>>>> Stashed changes
     entity_names = []
     for entity_type in entity_types:
         entities = ec.gql_get_entities_by_type(src_api_key, entity_type, src_account_id, tag_name, tag_value, src_region)
@@ -110,17 +106,10 @@ def main():
     src_region = utils.ensure_source_region(args)
     print_params(args, src_api_key, entity_types, src_region)
     if args.tagName is None:
-<<<<<<< Updated upstream
-        fetch_entities(args.sourceAccount[0], src_api_key, entity_types, args.toFile[0], src_region=src_region)
-    else:
-        fetch_entities(args.sourceAccount[0], src_api_key, entity_types, args.toFile[0], tag_name=args.tagName[0],
-                       tag_value=args.tagValue[0], src_region=src_region)
-=======
         fetch_entities(args.sourceAccount[0], src_api_key, entity_types, args.toFile[0], src_region=src_region, assessment=args.assessment)
     else:
         fetch_entities(args.sourceAccount[0], src_api_key, entity_types, args.toFile[0], tag_name=args.tagName[0],
                        tag_value=args.tagValue[0], src_region=src_region, assessment=args.assessment)
->>>>>>> Stashed changes
     
 
 if __name__ == '__main__':

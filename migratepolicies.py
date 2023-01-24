@@ -234,8 +234,8 @@ def migrate_alert_policies(policy_names: List[str],
             result = ac.create_alert_policy(tgt_api_key, src_policy, tgt_region)
             update_create_status(all_alert_status, policy_name, result)
             tgt_policy = result['policy']
-        update_notification_channels(tgt_api_key, tgt_region, src_policy, tgt_policy, loaded_src_channels,
-                                     tgt_channels_by_type_name, all_alert_status)
+        # update_notification_channels(tgt_api_key, tgt_region, src_policy, tgt_policy, loaded_src_channels,
+        #                              tgt_channels_by_type_name, all_alert_status)
     logger.info('Alert migration complete.')
     return all_alert_status
 

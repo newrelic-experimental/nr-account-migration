@@ -108,12 +108,15 @@ class WorkflowsClient:
         logger.info(f"Update policy id values in issuesFilter")
         predicates = []
         for predicate in workflow['issuesFilter']['predicates']:
-            target_predicate = {
-                'attribute': predicate['attribute'],  # String!
-                'operator': predicate['operator'],  # iWorkflowsOperator!
-                'values': predicate['targetValues']  # [String!]!
-            }
-            predicates.append(target_predicate)
+            if predicate['attribute'] == 'labels.policyIds':
+                target_predicate = {
+                    'attribute': predicate['attribute'],  # String!
+                    'operator': predicate['operator'],  # iWorkflowsOperator!
+                    'values': predicate['targetValues']  # [String!]!
+                }
+                predicates.append(target_predicate)
+            else:
+                logger.debug(f"Ignoring predicate {predicate}")
         if 'issuesFilter' in workflow:
             workflowData['issuesFilter'] = {
                 'name': workflow['issuesFilter']['name'],  # String: this is a guid, which is unexpected

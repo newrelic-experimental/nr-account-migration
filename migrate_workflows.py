@@ -70,21 +70,24 @@ def migrate_workflows(src_acct, src_api_key, src_region, tgt_acct, tgt_api_key, 
         if "issuesFilter" in workflow:
             workflow['issuesFilter']['targetAccountId'] = int(tgt_acct)
             for predicate in workflow['issuesFilter']['predicates']:
-                targetValues = []
-                for source_policy_id in predicate['values']:
-                    if int(source_policy_id) in policies_by_source_id:
-                        policy = policies_by_source_id.get(int(source_policy_id))
-                        if 'targetPolicyId' in policy:
-                            targetValues.append(str(policy['targetPolicyId']))
-                            log.info(f"Target policy id: {str(policy['targetPolicyId'])} found for source policy id: {source_policy_id} ")
+                if predicate['attribute'] == 'labels.policyIds':
+                    targetValues = []
+                    for source_policy_id in predicate['values']:
+                        if int(source_policy_id) in policies_by_source_id:
+                            policy = policies_by_source_id.get(int(source_policy_id))
+                            if 'targetPolicyId' in policy:
+                                targetValues.append(str(policy['targetPolicyId']))
+                                log.info(f"Target policy id: {str(policy['targetPolicyId'])} found for source policy id: {source_policy_id} ")
+                            else:
+                                hasError = True
+                                log.error(f"Unable to create workflow name: {workflow['name']}. Target policy id unavailable for source policy id: {source_policy_id}")
                         else:
                             hasError = True
                             log.error(f"Unable to create workflow name: {workflow['name']}. Target policy id unavailable for source policy id: {source_policy_id}")
-                    else:
-                        hasError = True
-                        log.error(f"Unable to create workflow name: {workflow['name']}. Target policy id unavailable for source policy id: {source_policy_id}")
-                if len(targetValues) > 0:
-                    predicate['targetValues'] = targetValues
+                    if len(targetValues) > 0:
+                        predicate['targetValues'] = targetValues
+                else:
+                    log.debug(f"Ignoring predicate {predicate}")
         else:
             hasError = True
             log.info(f"Workflow name: {workflow['name']} with id: {workflow['id']} has no issuesFilter: {workflow}")

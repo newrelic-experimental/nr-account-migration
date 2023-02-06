@@ -205,6 +205,7 @@ def migrate_alert_policies(policy_names: List[str],
                            src_account: int, src_api_key: str, src_region: str,
                            tgt_account: int, tgt_api_key: str, tgt_region: str):
     logger.info('Alert migration started.')
+    policies_by_source_id = {}
     all_alert_status = {}
     if fetch_channels:
         logger.info('Fetching latest channel info and policy assignment. This may take a while.....')
@@ -234,10 +235,15 @@ def migrate_alert_policies(policy_names: List[str],
             result = ac.create_alert_policy(tgt_api_key, src_policy, tgt_region)
             update_create_status(all_alert_status, policy_name, result)
             tgt_policy = result['policy']
+        src_policy['targetPolicyId'] = tgt_policy['id']
+        policies_by_source_id.setdefault(src_policy['id'], src_policy)
         # update_notification_channels(tgt_api_key, tgt_region, src_policy, tgt_policy, loaded_src_channels,
         #                              tgt_channels_by_type_name, all_alert_status)
     logger.info('Alert migration complete.')
-    return all_alert_status
+    return_dict = dict()
+    return_dict['all_alert_status'] = all_alert_status
+    return_dict['policies_by_source_id'] = policies_by_source_id
+    return return_dict
 
 
 def update_create_status(all_alert_status, policy_name, result):
@@ -267,7 +273,7 @@ def migrate(
         use_local
     )
 
-    status = migrate_alert_policies(
+    return_dict = migrate_alert_policies(
         policy_names,
         source_acct_id,
         source_api_key,
@@ -276,6 +282,9 @@ def migrate(
         target_api_key,
         target_region
     )
+
+    policies_by_source_id = return_dict['policies_by_source_id']
+    status = return_dict['all_alert_status']
 
     status_file = ac.get_alert_status_file_name(
         policy_file_path,
@@ -286,7 +295,7 @@ def migrate(
     )
     store.save_status_csv(status_file, status, askeys)
 
-    return status_file
+    return policies_by_source_id
 
 
 class MigratePoliciesCommand:

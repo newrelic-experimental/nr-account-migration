@@ -9,6 +9,8 @@ import fetchnotifications as fetchnotifications
 import fetchworkflows as fetchworkflows
 import library.clients.alertsclient as ac
 import library.clients.entityclient as ec
+import library.clients.notificationsclient as nc
+import library.clients.workflowsclient as wc
 import library.migrationlogger as m_logger
 import library.securecredentials as sec_credentials
 import library.utils as utils
@@ -16,8 +18,10 @@ import migrate_apm as mapm
 import migrate_dashboards as md
 import migrateconditions as mc
 import migratemonitors as mm
+import migrate_notifications as mn
 import migratepolicies as mp
 import migratetags as mt
+import migrate_workflows as mw
 import store_policies as store_policies
 
 SRC_ACCT = '1234567'
@@ -61,6 +65,15 @@ def cleanup():
     # reset_app()
     logger.info('deleting all target dashboards')
     ec.delete_all_dashboards(TGT_API_KEY, TGT_ACCT, TGT_REGION)
+    logger.info('deleting all target workflows')
+    workflows_by_target_id = fetchworkflows.fetch_workflows(TGT_API_KEY, TGT_ACCT, TGT_REGION, accounts_file=None)
+    wc.WorkflowsClient.delete_all_workflows(workflows_by_target_id, TGT_API_KEY, TGT_ACCT, TGT_REGION, delete_channels=False)
+    logger.info('deleting all target channels')
+    channels_by_target_id = fetchnotifications.fetch_channels(TGT_API_KEY, TGT_ACCT, TGT_REGION, accounts_file=None)
+    nc.NotificationsClient.delete_all_channels(channels_by_target_id, TGT_API_KEY, TGT_ACCT, TGT_REGION)
+    logger.info('deleting all target destinations')
+    destinations_by_target_id = fetchnotifications.fetch_destinations(TGT_API_KEY, TGT_ACCT, TGT_REGION, accounts_file=None)
+    nc.NotificationsClient.delete_all_destinations(destinations_by_target_id, TGT_API_KEY, TGT_ACCT, TGT_REGION)
 
 
 def fetch():
@@ -70,6 +83,7 @@ def fetch():
     logger.info(f'Timestamp for fetched monitors: {src_mon_time_stamp}')
     logger.info('Fetching alert channels for policies')
     store_policies.store_alert_policies(SRC_ACCT, SRC_API_KEY, SRC_REGION)
+    # Fetch legacy channels is redundant, as migrate_policies will retrieve the channels, but it does create the alert_channels.json for review
     fetchchannels.fetch_alert_channels(SRC_API_KEY, SRC_ACCT, SRC_REGION)
     fetchentities.fetch_entities(SRC_ACCT, SRC_API_KEY, [ec.DASHBOARD], '{}_dashboards.csv'.format(SRC_ACCT), tag_name=None, tag_value=None, src_region=SRC_REGION, assessment=None)
     fetchentities.fetch_entities(SRC_ACCT, SRC_API_KEY, [ec.APM_APP], '{}_apm.csv'.format(SRC_ACCT), tag_name=None, tag_value=None, src_region=SRC_REGION, assessment=None)
@@ -80,16 +94,16 @@ def migrate_step1():
     mm.migrate_monitors('output/' + SRC_MON_LIST_FILE, SRC_ACCT, SRC_REGION, SRC_API_KEY, src_mon_time_stamp, TGT_ACCT, TGT_REGION, TGT_API_KEY, MINION_MAPPING_FILE)
     # Migrate Synthetic monitor entity tags
     mt.migrate_tags('output/' + SRC_MON_LIST_FILE, SRC_ACCT, SRC_REGION, SRC_API_KEY, TGT_ACCT, TGT_REGION, TGT_API_KEY, [ec.SYNTH_MONITOR])
-    policy_names = utils.load_alert_policy_names(
-        POLICY_NAME_FILE,
-        ENTITY_NAME_FILE,
-        SRC_ACCT,
-        SRC_REGION,
-        SRC_API_KEY,
-        USE_LOCAL
-    )
-    mp.migrate_alert_policies(policy_names, SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION)
-    mc.migrate_conditions(policy_names, SRC_ACCT, SRC_REGION, SRC_API_KEY, TGT_ACCT, TGT_REGION, TGT_API_KEY, COND_TYPES, MATCH_SOURCE_CONDITION_STATE)
+    # Migrate alert policies
+    policies_by_source_id = mp.migrate(POLICY_NAME_FILE, ENTITY_NAME_FILE, SRC_ACCT, SRC_REGION, TGT_ACCT, TGT_REGION, SRC_API_KEY, TGT_API_KEY, USE_LOCAL)
+    # Migrate alert conditions
+    mc.migrate(POLICY_NAME_FILE, ENTITY_NAME_FILE, SRC_ACCT, SRC_REGION, TGT_ACCT, TGT_REGION, SRC_API_KEY, TGT_API_KEY, COND_TYPES, USE_LOCAL, MATCH_SOURCE_CONDITION_STATE)
+    # Migrate notification destinations
+    destinations_by_source_id = mn.migrate_destinations(SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION)
+    # Migrate notification channels
+    channels_by_source_id = mn.migrate_channels(SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION, destinations_by_source_id)
+    # Migrate workflows 
+    workflows_by_source_id = mw.migrate_workflows(SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION, channels_by_source_id, policies_by_source_id)
 
 
 def migrate_step2():
@@ -107,3 +121,5 @@ if __name__ == '__main__':
     migrate_step1()
     # Redirect apps, then
     # migrate_step2()
+    logger.info('Completed migration')
+

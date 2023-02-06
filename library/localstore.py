@@ -23,7 +23,12 @@ ALERT_VIOLATIONS_FILE = "alert_violations.json"
 ALERT_VIOLATIONS_CSV = "alert_violations.csv"
 ALERT_CHANNELS_FILE = "alert_channels.json"
 MONITOR_LABELS_CSV = "monitor_labels.csv"
+NOTIFICATION_CHANNELS_FILE = 'notification_channels.json'
+NOTIFICATION_DESTINATIONS_FILE = 'notification_destinations.json'
+NOTIFICATIONS_DIR = "notifications"
 SYNTHETIC_ALERTS_FILE = "synthetics_alerts.json"
+WORKFLOWS_DIR = "workflows"
+WORKFLOWS_FILE = "workflows.json"
 
 
 logger = migrationlogger.get_logger(os.path.basename(__file__))
@@ -127,6 +132,47 @@ def save_feature_settings_csv(fs_data: list):
                                    quotechar='"', quoting=csv.QUOTE_ALL)
         csv_writer.writerows(host_data + [""] for host_data in fs_data)
 
+
+def save_config_csv(config_name: str, fs_data):
+    output_dir = Path("output")
+    fs_file_name = config_name + '.csv'
+    fs_data_file = output_dir / fs_file_name
+    create_file(fs_data_file)
+    with open(str(fs_data_file), 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+        # Counter variable used for writing headers to the CSV file
+        isHeaderSet = False
+        for data in fs_data:
+            if type(data) is list:
+                for element in data:
+                    if isHeaderSet == False:
+                        # Writing headers of CSV file
+                        header = element.keys()
+                        csv_writer.writerow(header)
+                        isHeaderSet = True
+                    # Writing data of CSV file
+                    csv_writer.writerow(element.values())
+            elif type(data) is object:
+                if isHeaderSet == False:
+                    # Writing headers of CSV file
+                    header = data.keys()
+                    csv_writer.writerow(header)
+                    isHeaderSet = True
+                # Writing data of CSV file
+                csv_writer.writerow(data.values())
+            elif type(fs_data) is dict and type(data) is str:
+                if isHeaderSet == False:
+                    # Writing headers of CSV file
+                    header = fs_data.get(data).keys()
+                    csv_writer.writerow(header)
+                    isHeaderSet = True
+                # Writing data of CSV file
+                csv_writer.writerow(fs_data.get(data).values())
+            else:
+                logger.error("Unexpected data type: ", type(data))
+        # Close file
+        csvfile.close()
+        
 
 def load_names(from_file):
     names = []
@@ -322,3 +368,24 @@ def save_synth_conditions(account_id, synth_conditions):
     base_dir = Path("db")
     alert_policies_dir = base_dir / account_id / ALERT_POLICIES_DIR
     save_json(alert_policies_dir, SYNTHETIC_ALERTS_FILE, synth_conditions)
+
+
+#  db/<account_id>/notifications/notification_destinations.json
+def save_notification_destinations(account_id, destinations):
+    base_dir = Path("db")
+    notifications_dir = base_dir / account_id / NOTIFICATIONS_DIR
+    save_json(notifications_dir, NOTIFICATION_DESTINATIONS_FILE, destinations)
+
+
+#  db/<account_id>/notifications/notification_channels.json
+def save_notification_channels(account_id, channels):
+    base_dir = Path("db")
+    notifications_dir = base_dir / account_id / NOTIFICATIONS_DIR
+    save_json(notifications_dir, NOTIFICATION_CHANNELS_FILE, channels)
+
+
+#  db/<account_id>/workflows/workflows.json
+def save_workflows(account_id, workflows):
+    base_dir = Path("db")
+    workflows_dir = base_dir / account_id / WORKFLOWS_DIR
+    save_json(workflows_dir, WORKFLOWS_FILE, workflows)

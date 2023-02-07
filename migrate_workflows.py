@@ -1,6 +1,7 @@
 import os
 import argparse
 import fetchworkflows as fetchworkflows
+import library.clients.notificationsclient as notificationsclient
 import library.clients.workflowsclient as workflowsclient
 import library.localstore as store
 import library.migrationlogger as m_logger
@@ -8,7 +9,7 @@ import library.utils as utils
 
 
 log = m_logger.get_logger(os.path.basename(__file__))
-nc = workflowsclient.WorkflowsClient()
+wc = workflowsclient.WorkflowsClient()
 
 
 def print_args(args, src_api_key, src_region, tgt_api_key, tgt_region):
@@ -35,7 +36,7 @@ def configure_parser():
 
 def create_workflow(workflow, tgt_acct, tgt_api_key, tgt_region):
     log.info(f"Creating workflow: {workflow['name']}")
-    nc.create_workflow(workflow, tgt_api_key, tgt_acct, tgt_region)
+    wc.create_workflow(workflow, tgt_api_key, tgt_acct, tgt_region)
     log.info(f"Created workflow: {workflow['name']}")
 
 
@@ -48,6 +49,11 @@ def migrate_workflows(src_acct, src_api_key, src_region, tgt_acct, tgt_api_key, 
         # Enrich destinationConfigurations with target channel ids
         log.info(f"Enriching destination configurations for target account: {tgt_acct}")
         if 'destinationConfigurations' in workflow:
+            # Splice workflow['destinationConfigurations'] to contain only supported destinations
+            workflow['destinationConfigurations'][:] = [destination_configuration for destination_configuration in workflow['destinationConfigurations'] if destination_configuration['type'] in notificationsclient.SUPPORTED_DESTINATIONS]
+            if len(workflow['destinationConfigurations']) < 1:
+                log.warning(f"Workflow name: {workflow['name']} does not contain a supported destination")
+                continue
             for destination_configuration in workflow['destinationConfigurations']:
                 if 'channelId' in destination_configuration:
                     source_channel_id = destination_configuration['channelId']
@@ -57,8 +63,8 @@ def migrate_workflows(src_acct, src_api_key, src_region, tgt_acct, tgt_api_key, 
                             destination_configuration['targetChannelId'] = channel['targetChannelId']
                             log.info(f"Target channel id: {destination_configuration['targetChannelId']} found for source channel id: {source_channel_id}")
                         else:
-                            # hasError = True  # TODO revert to error once slack and webhook destinations and channels are complete
-                            log.warning(f"Unable to create workflow name: {workflow['name']}. Target channel id unavailable for source channel id: {source_channel_id} with type: {channel['type']}")
+                            hasError = True
+                            log.error(f"Unable to create workflow name: {workflow['name']}. Target channel id unavailable for source channel id: {source_channel_id} with type: {channel['type']}")
                     else:
                         hasError = True
                         log.error(f"Unable to create workflow name: {workflow['name']}. Source channel id: {source_channel_id} unavailable")

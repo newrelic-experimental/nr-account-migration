@@ -100,10 +100,12 @@ class WorkflowsClient:
         # Update channel id values in destinationConfigurations
         logger.info(f"Update channel id values in destinationConfigurations")
         if 'destinationConfigurations' in workflow:
-            workflowData['destinationConfigurations'] = {
-                'channelId':  workflow['destinationConfigurations'][0]['targetChannelId'],  # It's unclear why destination configurations is of type list, when there is only one channel permitted per workflow. From the docs[https://docs.newrelic.com/docs/apis/nerdgraph/examples/nerdgraph-api-workflows/#create-workflow]: Callout note: A channel ID is unique and so can't be used in multiple workflows or used multiple times in the same workflow.
-                'notificationTriggers': workflow['destinationConfigurations'][0]['notificationTriggers']
-            }
+            workflowData['destinationConfigurations'] = []
+            for destination_configuration in workflow['destinationConfigurations']:
+                workflowData['destinationConfigurations'].append({
+                    'channelId':  destination_configuration['targetChannelId'],
+                    'notificationTriggers': destination_configuration['notificationTriggers']
+                })
         # Update policy id values in issuesFilter
         logger.info(f"Update policy id values in issuesFilter")
         predicates = []

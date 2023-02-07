@@ -35,78 +35,20 @@ def configure_parser():
     return parser
 
 
-def create_email_destination(destination, tgt_acct, tgt_api_key, tgt_region):
-    log.info(f"Creating destination: {destination['name']} of type {destination['type']}")
-    response = nc.create_email_destination(destination, tgt_api_key, tgt_acct, tgt_region)
-    log.info(f"Created destination: {destination['name']} of type {destination['type']}")
-
-
-def create_webhook_destination(destination, tgt_acct, tgt_api_key, tgt_region):
-    log.info(f"Creating destination: {destination['name']} of type {destination['type']}")
-    response = nc.create_webhook_destination(destination, tgt_api_key, tgt_acct, tgt_region)
-    log.info(f"Created destination: {destination['name']} of type {destination['type']}")
-
-
-def create_mobile_push_destination(destination, tgt_acct, tgt_api_key, tgt_region):
-    log.info(f"Creating destination: {destination['name']} of type {destination['type']}")
-    response = nc.create_mobile_push_destination(destination, tgt_api_key, tgt_acct, tgt_region)
-    log.info(f"Created destination: {destination['name']} of type {destination['type']}")
-
-
-def create_slack_legacy_destination(destination, tgt_acct, tgt_api_key, tgt_region):
-    log.info(f"Creating destination: {destination['name']} of type {destination['type']}")
-    response = nc.create_slack_legacy_destination(destination, tgt_api_key, tgt_acct, tgt_region)
-    log.info(f"Created destination: {destination['name']} of type {destination['type']}")
-
-
 def create_destination(destination, tgt_acct, tgt_api_key, tgt_region):
-    log.info(f"Creating destination: {destination['name']}")
-    if destination['type'] == notificationsclient.DESTINATION_TYPE_EMAIL:
-        create_email_destination(destination, tgt_acct, tgt_api_key, tgt_region)
-    elif destination['type'] == notificationsclient.DESTINATION_TYPE_MOBILE_PUSH:
-        create_mobile_push_destination(destination, tgt_acct, tgt_api_key, tgt_region)
-    elif destination['type'] == notificationsclient.DESTINATION_TYPE_SLACK_LEGACY:
-        create_slack_legacy_destination(destination, tgt_acct, tgt_api_key, tgt_region)
-    elif destination['type'] == notificationsclient.DESTINATION_TYPE_WEBHOOK:
-        create_webhook_destination(destination, tgt_acct, tgt_api_key, tgt_region)
+    if destination['type'] in notificationsclient.SUPPORTED_DESTINATIONS:
+        log.info(f"Creating destination: {destination['name']} of type {destination['type']}")
+        nc.create_destination(destination, tgt_api_key, tgt_acct, tgt_region)
+        log.info(f"Created destination: {destination['name']} of type {destination['type']}")
     else:
         log.warn(f"Unsupported destination type: {destination['type']}, for destination: {destination['name']}")
 
 
-def create_email_channel(channel, tgt_acct, tgt_api_key, tgt_region):
-    log.info(f"Creating channel: {channel['name']} of type {channel['type']}")
-    nc.create_email_channel(channel, tgt_api_key, tgt_acct, tgt_region)
-    log.info(f"Created channel: {channel['name']} of type {channel['type']}")
-
-
-def create_webhook_channel(channel, tgt_acct, tgt_api_key, tgt_region):
-    log.info(f"Creating channel: {channel['name']} of type {channel['type']}")
-    nc.create_webhook_channel(channel, tgt_api_key, tgt_acct, tgt_region)
-    log.info(f"Created channel: {channel['name']} of type {channel['type']}")
-
-
-def create_mobile_push_channel(channel, tgt_acct, tgt_api_key, tgt_region):
-    log.info(f"Creating channel: {channel['name']} of type {channel['type']}")
-    nc.create_mobile_push_channel(channel, tgt_api_key, tgt_acct, tgt_region)
-    log.info(f"Created channel: {channel['name']} of type {channel['type']}")
-
-
-def create_slack_legacy_channel(channel, tgt_acct, tgt_api_key, tgt_region):
-    log.info(f"Creating channel: {channel['name']} of type {channel['type']}")
-    nc.create_slack_legacy_channel(channel, tgt_api_key, tgt_acct, tgt_region)
-    log.info(f"Created channel: {channel['name']} of type {channel['type']}")
-
-
 def create_channel(channel, tgt_acct, tgt_api_key, tgt_region):
-    log.info(f"Creating channel: {channel['name']}")
-    if channel['type'] == notificationsclient.CHANNEL_TYPE_EMAIL:
-        create_email_channel(channel, tgt_acct, tgt_api_key, tgt_region)
-    elif channel['type'] == notificationsclient.CHANNEL_TYPE_MOBILE_PUSH:
-        create_mobile_push_channel(channel, tgt_acct, tgt_api_key, tgt_region)
-    elif channel['type'] == notificationsclient.CHANNEL_TYPE_SLACK_LEGACY:
-        create_slack_legacy_channel(channel, tgt_acct, tgt_api_key, tgt_region)
-    elif channel['type'] == notificationsclient.CHANNEL_TYPE_WEBHOOK:
-        create_webhook_channel(channel, tgt_acct, tgt_api_key, tgt_region)
+    if channel['type'] in notificationsclient.SUPPORTED_CHANNELS:
+        log.info(f"Creating channel: {channel['name']} of type {channel['type']}")
+        nc.create_channel(channel, tgt_api_key, tgt_acct, tgt_region)
+        log.info(f"Created channel: {channel['name']} of type {channel['type']}")
     else:
         log.warn(f"Unsupported channel type: {channel['type']}, for channel: {channel['name']}")
 

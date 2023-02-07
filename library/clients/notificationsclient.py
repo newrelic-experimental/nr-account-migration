@@ -17,9 +17,10 @@ DESTINATION_TYPE_SLACK_LEGACY = 'SLACK_LEGACY'
 DESTINATION_TYPE_WEBHOOK = 'WEBHOOK'
 
 SUPPORTED_DESTINATIONS = [
-    DESTINATION_TYPE_EMAIL, 
-    DESTINATION_TYPE_MOBILE_PUSH, 
-    DESTINATION_TYPE_SLACK_LEGACY, 
+    DESTINATION_TYPE_EMAIL,
+    DESTINATION_TYPE_MOBILE_PUSH,
+    DESTINATION_TYPE_SLACK,
+    DESTINATION_TYPE_SLACK_LEGACY,
     DESTINATION_TYPE_WEBHOOK
 ]
 
@@ -45,6 +46,14 @@ CHANNEL_TYPE_SLACK_COLLABORATION = 'SLACK_COLLABORATION'
 CHANNEL_TYPE_SLACK_LEGACY = 'SLACK_LEGACY'
 CHANNEL_TYPE_WEBHOOK = 'WEBHOOK'
 
+SUPPORTED_CHANNELS = [
+    CHANNEL_TYPE_EMAIL,
+    CHANNEL_TYPE_MOBILE_PUSH,
+    CHANNEL_TYPE_SLACK,
+    CHANNEL_TYPE_SLACK_LEGACY,
+    CHANNEL_TYPE_WEBHOOK
+]
+
 logger = nrlogger.get_logger(os.path.basename(__file__))
 
 
@@ -62,57 +71,9 @@ class NotificationsClient:
 
 
     @staticmethod
-    def create_email_destination(destination, user_api_key, account_id, region):
+    def create_destination(destination, user_api_key, account_id, region):
         logger.info(f"Destination {destination['name']} creation started.")
-        payload = NotificationsClient.email_destination_payload(account_id, destination)
-        logger.debug(json.dumps(payload))
-        result = nerdgraph.GraphQl.post(user_api_key, payload, region)
-        if 'response' in result:
-            if result['response']['data']['aiNotificationsCreateDestination']['error'] is not None:
-                logger.error(f"Error : {result['response']['data']['aiNotificationsCreateDestination']['error']}")
-            else:
-                destination_id =  result['response']['data']['aiNotificationsCreateDestination']['destination']['id']
-                destination.setdefault('targetDestinationId', destination_id)
-                logger.info(f"Destination {destination['name']} with id {destination['targetDestinationId']} creation complete.")
-        return result
-
-
-    @staticmethod
-    def create_webhook_destination(destination, user_api_key, account_id, region):
-        logger.info(f"Destination {destination['name']} creation started.")
-        payload = NotificationsClient.webhook_destination_payload(account_id, destination)
-        logger.debug(json.dumps(payload))
-        result = nerdgraph.GraphQl.post(user_api_key, payload, region)
-        if 'response' in result:
-            if result['response']['data']['aiNotificationsCreateDestination']['error'] is not None:
-                logger.error(f"Error : {result['response']['data']['aiNotificationsCreateDestination']['error']}")
-            else:
-                destination_id =  result['response']['data']['aiNotificationsCreateDestination']['destination']['id']
-                destination.setdefault('targetDestinationId', destination_id)
-                logger.info(f"Destination {destination['name']} with id {destination['targetDestinationId']} creation complete.")
-        return result
-
-
-    @staticmethod
-    def create_mobile_push_destination(destination, user_api_key, account_id, region):
-        logger.info(f"Destination {destination['name']} creation started.")
-        payload = NotificationsClient.mobile_push_destination_payload(account_id, destination)
-        logger.debug(json.dumps(payload))
-        result = nerdgraph.GraphQl.post(user_api_key, payload, region)
-        if 'response' in result:
-            if result['response']['data']['aiNotificationsCreateDestination']['error'] is not None:
-                logger.error(f"Error : {result['response']['data']['aiNotificationsCreateDestination']['error']}")
-            else:
-                destination_id =  result['response']['data']['aiNotificationsCreateDestination']['destination']['id']
-                destination.setdefault('targetDestinationId', destination_id)
-                logger.info(f"Destination {destination['name']} with id {destination['targetDestinationId']} creation complete.")
-        return result
-
-
-    @staticmethod
-    def create_slack_legacy_destination(destination, user_api_key, account_id, region):
-        logger.info(f"Destination {destination['name']} creation started.")
-        payload = NotificationsClient.slack_legacy_destination_payload(account_id, destination)
+        payload = NotificationsClient.create_destination_payload(account_id, destination)
         logger.debug(json.dumps(payload))
         result = nerdgraph.GraphQl.post(user_api_key, payload, region)
         if 'response' in result:
@@ -148,57 +109,8 @@ class NotificationsClient:
 
 
     @staticmethod
-    def create_email_channel(channel, user_api_key, account_id, region):
-        logger.info(f"Channel {channel['name']} creation started.")
-        payload = NotificationsClient.email_channel_payload(account_id, channel)
-        logger.debug(json.dumps(payload))
-        result = nerdgraph.GraphQl.post(user_api_key, payload, region)
-        if 'response' in result:
-            if result['response']['data']['aiNotificationsCreateChannel']['error'] is not None:
-                logger.error(f"Error : {result['response']['data']['aiNotificationsCreateChannel']['error']}")
-            else:
-                channel_id = result['response']['data']['aiNotificationsCreateChannel']['channel']['id']
-                channel.setdefault('targetChannelId', channel_id)
-                logger.info(f"Channel {channel['name']} with id {channel['targetChannelId']} creation complete.")
-        return result
-
-
-    @staticmethod
-    def create_webhook_channel(channel, user_api_key, account_id, region):
-        logger.info(f"Channel {channel['name']} creation started.")
-        payload = NotificationsClient.webhook_channel_payload(account_id, channel)
-        logger.debug(json.dumps(payload))
-        result = nerdgraph.GraphQl.post(user_api_key, payload, region)
-        if 'response' in result:
-            if result['response']['data']['aiNotificationsCreateChannel']['error'] is not None:
-                logger.error(f"Error : {result['response']['data']['aiNotificationsCreateChannel']['error']}")
-            else:
-                channel_id = result['response']['data']['aiNotificationsCreateChannel']['channel']['id']
-                channel.setdefault('targetChannelId', channel_id)
-                logger.info(f"Channel {channel['name']} with id {channel['targetChannelId']} creation complete.")
-        return result
-
-
-    @staticmethod
-    def create_mobile_push_channel(channel, user_api_key, account_id, region):
-        logger.info(f"Channel {channel['name']} creation started.")
-        payload = NotificationsClient.mobile_push_channel_payload(account_id, channel)
-        logger.debug(json.dumps(payload))
-        result = nerdgraph.GraphQl.post(user_api_key, payload, region)
-        if 'response' in result:
-            if result['response']['data']['aiNotificationsCreateChannel']['error'] is not None:
-                logger.error(f"Error : {result['response']['data']['aiNotificationsCreateChannel']['error']}")
-            else:
-                channel_id = result['response']['data']['aiNotificationsCreateChannel']['channel']['id']
-                channel.setdefault('targetChannelId', channel_id)
-                logger.info(f"Channel {channel['name']} with id {channel['targetChannelId']} creation complete.")
-        return result
-
-
-    @staticmethod
-    def create_slack_legacy_channel(channel, user_api_key, account_id, region):
-        logger.info(f"Channel {channel['name']} creation started.")
-        payload = NotificationsClient.slack_legacy_channel_payload(account_id, channel)
+    def create_channel(channel, user_api_key, account_id, region):
+        payload = NotificationsClient.create_channel_payload(account_id, channel)
         logger.debug(json.dumps(payload))
         result = nerdgraph.GraphQl.post(user_api_key, payload, region)
         if 'response' in result:
@@ -318,12 +230,12 @@ class NotificationsClient:
 
 
     @staticmethod
-    def email_destination_payload(account_id, destination):
-        mutation = '''mutation ($accountId: Int!, $destinationName: String!, $properties: [AiNotificationsPropertyInput!]!) {
+    def create_destination_payload(account_id, destination):
+        mutation = '''mutation ($accountId: Int!, $destinationName: String!, $destinationType: AiNotificationsDestinationType!, $properties: [AiNotificationsPropertyInput!]!) {
             aiNotificationsCreateDestination(accountId: $accountId, destination: {
                 name: $destinationName,
                 properties: $properties,
-                type: EMAIL
+                type: $destinationType
             }) {
                 destination {
                     id
@@ -343,99 +255,7 @@ class NotificationsClient:
             'variables': {
                 'accountId': int(account_id),
                 'destinationName': destination['name'],
-                'properties': destination['properties']
-            }
-        }
-
-
-    @staticmethod
-    def webhook_destination_payload(account_id, destination):
-        mutation = '''mutation ($accountId: Int!, $destinationName: String!, $properties: [AiNotificationsPropertyInput!]!) {
-            aiNotificationsCreateDestination(accountId: $accountId, destination: {
-                name: $destinationName,
-                properties: $properties,
-                type: WEBHOOK
-            }) {
-                destination {
-                    id
-                    name
-                }
-                error {
-                    ... on AiNotificationsResponseError {
-                        description
-                        details
-                        type
-                    }
-                }
-            }
-        }'''
-        return {
-            'query': mutation,
-            'variables': {
-                'accountId': int(account_id),
-                'destinationName': destination['name'],
-                'properties': destination['properties']
-            }
-        }
-
-
-    @staticmethod
-    def mobile_push_destination_payload(account_id, destination):
-        mutation = '''mutation ($accountId: Int!, $destinationName: String!, $properties: [AiNotificationsPropertyInput!]!) {
-            aiNotificationsCreateDestination(accountId: $accountId, destination: {
-                name: $destinationName,
-                properties: $properties,
-                type: MOBILE_PUSH
-            }) {
-                destination {
-                    id
-                    name
-                }
-                error {
-                    ... on AiNotificationsResponseError {
-                        description
-                        details
-                        type
-                    }
-                }
-            }
-        }'''
-        return {
-            'query': mutation,
-            'variables': {
-                'accountId': int(account_id),
-                'destinationName': destination['name'],
-                'properties': destination['properties']
-            }
-        }
-
-
-    @staticmethod
-    def slack_legacy_destination_payload(account_id, destination):
-        mutation = '''mutation ($accountId: Int!, $destinationName: String!, $properties: [AiNotificationsPropertyInput!]!) {
-            aiNotificationsCreateDestination(accountId: $accountId, destination: {
-                name: $destinationName,
-                properties: $properties,
-                type: SLACK_LEGACY
-            }) {
-                destination {
-                    id
-                    name
-                }
-                error {
-                    ... on AiNotificationsResponseError {
-                        description
-                        details
-                        type
-                    }
-                }
-            }
-        }'''
-        return {
-            'query': mutation,
-            'variables': {
-                'accountId': int(account_id),
-                'destinationName': destination['name'],
+                'destinationType': destination['type'],
                 'properties': destination['properties']
             }
         }
@@ -461,14 +281,14 @@ class NotificationsClient:
 
 
     @staticmethod
-    def email_channel_payload(account_id, channel):
-        mutation = '''mutation ($accountId: Int!, $channelName: String!, $destinationId: ID!, $product: AiNotificationsProduct!, $properties: [AiNotificationsPropertyInput!]!) {
+    def create_channel_payload(account_id, channel):
+        mutation = '''mutation ($accountId: Int!, $channelName: String!, $channelType: AiNotificationsChannelType!, $destinationId: ID!, $product: AiNotificationsProduct!, $properties: [AiNotificationsPropertyInput!]!) {
             aiNotificationsCreateChannel(accountId: $accountId, channel: {
                 destinationId: $destinationId,
                 name: $channelName,
                 product: $product,
                 properties: $properties,
-                type: EMAIL
+                type: $channelType
             }) {
                 channel {
                     id
@@ -488,111 +308,7 @@ class NotificationsClient:
             'variables': {
                 'accountId': int(account_id),
                 'channelName': channel['name'],
-                'destinationId': channel['destinationId'],
-                'product': channel['product'],
-                'properties': channel['properties']
-            }
-        }
-
-
-    @staticmethod
-    def webhook_channel_payload(account_id, channel):
-        mutation = '''mutation ($accountId: Int!, $channelName: String!, $destinationId: ID!, $product: AiNotificationsProduct!, $properties: [AiNotificationsPropertyInput!]!) {
-            aiNotificationsCreateChannel(accountId: $accountId, channel: {
-                destinationId: $destinationId,
-                name: $channelName,
-                product: $product,
-                properties: $properties,
-                type: WEBHOOK
-            }) {
-                channel {
-                    id
-                    name
-                }
-                error {
-                    ... on AiNotificationsResponseError {
-                        description
-                        details
-                        type
-                    }
-                }
-            }
-        }'''
-        return {
-            'query': mutation,
-            'variables': {
-                'accountId': int(account_id),
-                'channelName': channel['name'],
-                'destinationId': channel['destinationId'],
-                'product': channel['product'],
-                'properties': channel['properties']
-            }
-        }
-
-
-    @staticmethod
-    def mobile_push_channel_payload(account_id, channel):
-        mutation = '''mutation ($accountId: Int!, $channelName: String!, $destinationId: ID!, $product: AiNotificationsProduct!, $properties: [AiNotificationsPropertyInput!]!) {
-            aiNotificationsCreateChannel(accountId: $accountId, channel: {
-                destinationId: $destinationId,
-                name: $channelName,
-                product: $product,
-                properties: $properties,
-                type: MOBILE_PUSH
-            }) {
-                channel {
-                    id
-                    name
-                }
-                error {
-                    ... on AiNotificationsResponseError {
-                        description
-                        details
-                        type
-                    }
-                }
-            }
-        }'''
-        return {
-            'query': mutation,
-            'variables': {
-                'accountId': int(account_id),
-                'channelName': channel['name'],
-                'destinationId': channel['destinationId'],
-                'product': channel['product'],
-                'properties': channel['properties']
-            }
-        }
-
-
-    @staticmethod
-    def slack_legacy_channel_payload(account_id, channel):
-        mutation = '''mutation ($accountId: Int!, $channelName: String!, $destinationId: ID!, $product: AiNotificationsProduct!, $properties: [AiNotificationsPropertyInput!]!) {
-            aiNotificationsCreateChannel(accountId: $accountId, channel: {
-                destinationId: $destinationId,
-                name: $channelName,
-                product: $product,
-                properties: $properties,
-                type: SLACK_LEGACY
-            }) {
-                channel {
-                    id
-                    name
-                }
-                error {
-                    ... on AiNotificationsResponseError {
-                        description
-                        details
-                        type
-                    }
-                }
-            }
-        }'''
-        return {
-            'query': mutation,
-            'variables': {
-                'accountId': int(account_id),
-                'channelName': channel['name'],
+                'channelType': channel['type'],
                 'destinationId': channel['destinationId'],
                 'product': channel['product'],
                 'properties': channel['properties']

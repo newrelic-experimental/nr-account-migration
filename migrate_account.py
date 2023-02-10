@@ -94,6 +94,9 @@ def migrate_step1():
     mm.migrate_monitors('output/' + SRC_MON_LIST_FILE, SRC_ACCT, SRC_REGION, SRC_API_KEY, src_mon_time_stamp, TGT_ACCT, TGT_REGION, TGT_API_KEY, MINION_MAPPING_FILE)
     # Migrate Synthetic monitor entity tags
     mt.migrate_tags('output/' + SRC_MON_LIST_FILE, SRC_ACCT, SRC_REGION, SRC_API_KEY, TGT_ACCT, TGT_REGION, TGT_API_KEY, [ec.SYNTH_MONITOR])
+
+
+def migrate_step2():
     # Migrate alert policies
     policies_by_source_id = mp.migrate(POLICY_NAME_FILE, ENTITY_NAME_FILE, SRC_ACCT, SRC_REGION, TGT_ACCT, TGT_REGION, SRC_API_KEY, TGT_API_KEY, USE_LOCAL)
     # Migrate alert conditions
@@ -104,9 +107,6 @@ def migrate_step1():
     channels_by_source_id = mn.migrate_channels(SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION, destinations_by_source_id)
     # Migrate workflows 
     workflows_by_source_id = mw.migrate_workflows(SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION, channels_by_source_id, policies_by_source_id)
-
-
-def migrate_step2():
     # Migrate APM app_apdex_threshold, end_user_apdex_threshold, and enable_real_user_monitoring settings
     mapm.migrate_apps(APP_FILE, SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION)
     # Migrate dashboards

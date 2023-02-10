@@ -113,7 +113,7 @@ def migrate_dashboards(from_file, src_acct, src_api_key, src_region, tgt_acct, t
         update_nrql_account_ids(src_acct, tgt_acct, tgt_dashboard, account_mappings)
         result = ec.post_dashboard(tgt_api_key, tgt_dashboard, tgt_acct, tgt_region)
         all_db_status[db_name][ds.STATUS] = result['status']
-        if result['entityCreated']:
+        if 'entityCreated' in result:
             log.info('Created target dashboard ' + db_name)
             all_db_status[db_name][ds.DASHBOARD_CREATED] = True
             all_db_status[db_name][ds.TARGET_DASHBOARD] = result['entity']['guid']

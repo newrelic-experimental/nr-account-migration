@@ -270,7 +270,8 @@ def create_output_file(file_name):
 
 
 def sanitize(name):
-    illegal_characters = ['/', '?', '<', '>', '\\', ':', '*', '|']
+    # illegal_characters = ['/', '?', '<', '>', '\\', ':', '*', '|']
+    illegal_characters = ['/', '?', '<', '>', '\\', '*', '|']
     characters = list(name)
     for index, character in enumerate(characters):
         if characters[index] in illegal_characters:

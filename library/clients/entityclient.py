@@ -952,10 +952,15 @@ def get_nrql_condition_payload(account_id, condition_id):
                             policyId
                             runbookUrl
                             signal {
+                                aggregationDelay
+                                aggregationMethod
+                                aggregationTimer
                                 aggregationWindow
+                                evaluationDelay
                                 evaluationOffset
                                 fillOption
                                 fillValue
+                                slideBy
                             }
                             terms {
                                 operator

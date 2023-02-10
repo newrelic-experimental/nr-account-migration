@@ -23,22 +23,20 @@ def configure_parser():
 
 def fetch_destinations(user_api_key, account_id, region, accounts_file=None):
     destinations_by_id = get_config(nc.destinations, user_api_key, account_id, region, accounts_file)
-    store.save_notification_destinations(account_id, destinations_by_id)
     return destinations_by_id
 
 
 def fetch_channels(user_api_key, account_id, region, accounts_file=None):
     channels_by_id = get_config(nc.channels, user_api_key, account_id, region, accounts_file)
-    store.save_notification_channels(account_id, channels_by_id)
     return channels_by_id
 
 
-def get_config(func, user_api_key, account_id, region, from_file):
+def get_config(func, user_api_key, account_id, region, accounts_file):
     acct_ids = []
     if account_id: 
         acct_ids = [account_id]
     else:
-        acct_ids = store.load_names(from_file)
+        acct_ids = store.load_names(accounts_file)
     configs_by_id = {}
     # Strip the class name
     field = func.__name__
@@ -65,9 +63,15 @@ def get_config(func, user_api_key, account_id, region, from_file):
             except:
                 logger.error(f'Error querying {field} for account {acct_id}')
             else:
+                account_configs_by_id = {}
                 for element in config:
                     element['accountId'] = acct_id
                     configs_by_id.setdefault(element['id'], element)
+                    account_configs_by_id.setdefault(element['id'], element)
+        if field == 'destinations':
+            store.save_notification_destinations(acct_id, account_configs_by_id)
+        if field == 'channels':
+            store.save_notification_channels(acct_id, account_configs_by_id)
     logger.info(configs_by_id)
     store.save_config_csv(field, configs_by_id)
     return configs_by_id
@@ -80,10 +84,12 @@ def main():
     if not user_api_key:
         utils.error_and_exit('userApiKey', 'ENV_USER_API_KEY')
     region = utils.ensure_region(args)
+    account_id = args.account[0] if args.account else None
+    accounts_file = args.accounts[0] if args.accounts else None
     if args.destinations:
-        fetch_destinations(user_api_key, args.account[0], region, args.accounts[0] if args.accounts else None)
+        fetch_destinations(user_api_key, account_id, region, accounts_file)
     elif args.channels:
-        fetch_channels(user_api_key, args.account[0], region, args.accounts[0] if args.accounts else None)
+        fetch_channels(user_api_key, account_id, region, accounts_file)
     else:
         logger.info("pass [--destinations | --channels] to fetch configuration")
 

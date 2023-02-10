@@ -21,7 +21,6 @@ def configure_parser():
 
 def fetch_workflows(user_api_key, account_id, region, accounts_file=None):
     workflow_by_source_id = get_config(wc.workflows, user_api_key, account_id, region, accounts_file)
-    store.save_workflows(account_id, workflow_by_source_id)
     return workflow_by_source_id
 
 
@@ -53,9 +52,12 @@ def get_config(func, user_api_key, account_id, region, from_file):
             except:
                 logger.error(f'Error querying {field} for account {acct_id}')
             else:
+                account_configs_by_id = {}
                 for element in config:
                     element['accountId'] = acct_id
                     configs_by_id.setdefault(element['id'], element)
+                    account_configs_by_id.setdefault(element['id'], element)
+        store.save_workflows(acct_id, account_configs_by_id)
     logger.info(configs_by_id)
     store.save_config_csv(field, configs_by_id)
     return configs_by_id
@@ -68,7 +70,9 @@ def main():
     if not user_api_key:
         utils.error_and_exit('userApiKey', 'ENV_USER_API_KEY')
     region = utils.ensure_region(args)
-    fetch_workflows(user_api_key, args.account[0], args.accounts[0], region)
+    account_id = args.account[0] if args.account else None
+    accounts_file = args.accounts[0] if args.accounts else None
+    fetch_workflows(user_api_key, account_id, region, accounts_file)
 
 
 if __name__ == '__main__':

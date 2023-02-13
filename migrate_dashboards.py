@@ -77,12 +77,21 @@ def update_nrql_account_ids(src_acct_id, tgt_acct_id, entity, account_mappings=N
             if not 'nrqlQueries' in widget['rawConfiguration']:
                 continue
             for query in widget['rawConfiguration']['nrqlQueries']:
-                if account_mappings:
-                    # Use account mappings (if available), defaults to tgt_acct_id if the account is not present in the mapping dict
-                    mapped_account = account_mappings.get(str(query['accountId']), tgt_acct_id)
-                    query['accountId'] = int(mapped_account)
-                elif 'accountId' in query and query['accountId'] == src_acct_id:
-                    query['accountId'] = tgt_acct_id
+                if 'accountId' in query:
+                    if account_mappings:
+                        # Use account mappings (if available), defaults to tgt_acct_id if the account is not present in the mapping dict
+                        mapped_account = account_mappings.get(str(query['accountId']), tgt_acct_id)
+                        query['accountId'] = int(mapped_account)
+                    elif query['accountId'] == src_acct_id:
+                        query['accountId'] = tgt_acct_id
+                if 'accountIds' in query:
+                    for index, accountId in enumerate(query['accountIds']):
+                        if account_mappings:
+                            # Use account mappings (if available), defaults to tgt_acct_id if the account is not present in the mapping dict
+                            mapped_account = account_mappings.get(str(accountId), tgt_acct_id)
+                            query['accountIds'][index] = int(mapped_account)
+                        elif accountId == src_acct_id:
+                            query['accountIds'][index] = tgt_acct_id
 
 
 def migrate_dashboards(from_file, src_acct, src_api_key, src_region, tgt_acct, tgt_api_key, tgt_region, account_mapping_file=None):

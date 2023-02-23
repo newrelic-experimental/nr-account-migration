@@ -118,7 +118,8 @@ class WorkflowsClient:
                 }
                 predicates.append(target_predicate)
             else:
-                logger.debug(f"Ignoring predicate {predicate}")
+                logger.debug(f"Copying existing predicate {predicate}")
+                predicates.append(predicate)
         if 'issuesFilter' in workflow:
             workflowData['issuesFilter'] = {
                 'name': workflow['issuesFilter']['name'],  # String: this is a guid, which is unexpected

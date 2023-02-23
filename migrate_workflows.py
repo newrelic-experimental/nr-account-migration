@@ -42,9 +42,9 @@ def create_workflow(workflow, tgt_acct, tgt_api_key, tgt_region):
 
 def migrate_workflows(src_acct, src_api_key, src_region, tgt_acct, tgt_api_key, tgt_region, channels_by_source_id, policies_by_source_id):
     log.info('Workflows migration started.')
-    hasError = False
     workflows_by_source_id = fetchworkflows.fetch_workflows(src_api_key, src_acct, src_region)
     for workflow in workflows_by_source_id.values():
+        hasError = False
         log.info(f"Workflow name: {workflow['name']}")
         # Enrich destinationConfigurations with target channel ids
         log.info(f"Enriching destination configurations for target account: {tgt_acct}")

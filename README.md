@@ -141,7 +141,10 @@ toFile           | should only be a file name e.g. soure-monitors.csv. It will a
 
 ####  3) python3 fetchchannels.py (optional if you want to use --useLocal option during migratepolicies)
 
-`usage: fetchchannels.py  --sourceAccount SOURCEACCOUNT [--sourceApiKey SOURCEAPIKEY] --region [ us (default) |eu ]`
+```
+usage: fetchchannels.py  --sourceAccount SOURCEACCOUNT [--sourceApiKey SOURCEAPIKEY] --region [ us (default) |eu ]
+
+```
 
 Fetches alert channels and builds a dictionary mapping channels to policy_id.
 
@@ -151,7 +154,9 @@ During migratepolicies the stored alert_channels can be used by passing --useLoc
 
 ####  4) python3 migratemonitors.py
 
-`usage: migratemonitors.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT  [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] --timeStamp TIMESTAMP [--useLocal] [--minionMappingFile]`
+```
+usage: migratemonitors.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT  [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] --timeStamp TIMESTAMP [--useLocal] [--minionMappingFile]
+```
 
 Parameter     | Note
 ------------- | --------------------------------------------------------------------------------------------------------
@@ -184,7 +189,9 @@ A value of 0 CHECK_COUNT for scripted monitors indicates it has not run in the p
 
 ####  5) python3 migratepolicies.py
 
-`usage: migratepolicies.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--useLocal]`
+```
+usage: migratepolicies.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--useLocal]
+```
 
 Parameter        | Note
 ---------------- | ------------------------------------------------------------------------------------------------------
@@ -268,7 +275,9 @@ to move will be the union of both.
 
 Any target APM , Browser, Mobile apps and Key transactions must be migrated manually.
 
-`usage: migrateconditions.py [-h] --fromFile FROMFILE --personalApiKey PERSONALAPIKEY --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--matchSourceState] [--synthetics --app_conditions --nrql_conditions --infra_conditions]`
+```
+usage: migrateconditions.py [-h] --fromFile FROMFILE --personalApiKey PERSONALAPIKEY --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--matchSourceState] [--synthetics --app_conditions --nrql_conditions --infra_conditions]
+```
 
 Parameter      | Note
 -------------- | --------------------------------------------------
@@ -366,7 +375,9 @@ synthetics     | Pass this flag to migrate Synthetic monitor entity tags
 
 Potential use is for renaming/disabling migrated monitors in source account.
 
-`usage: updatemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --timeStamp TIMESTAMP [--renamePrefix RENAMEPREFIX] [--disable]`
+```
+usage: updatemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --timeStamp TIMESTAMP [--renamePrefix RENAMEPREFIX] [--disable]
+```
 
 Parameter     | Note
 ------------- | -------------------------------------------------------------------------
@@ -391,9 +402,12 @@ output/targetAccount_fromFile_updated_monitors.csv
 
 ####  11) python3 fetchentities.py
 
+```
 usage: fetchentities.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY
                             --toFile FILENAME [--tagName TAGNAME --tagValue TAGVALUE]
                             [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics] 
+                            
+```
 
 Create a file in the output directory that contains entity names from the source account. This can be filtered by using --tagName and --tagValue. This may be beneficial for other migration scripts in this repo that require a fromFile argument.
 
@@ -419,7 +433,9 @@ workload       | Pass this flag to list Workloads
 
 ####  12) python3 deletemonitors.py
 
-`usage: deletemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --timeStamp TIMESTAMP`
+```
+usage: deletemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --timeStamp TIMESTAMP
+```
 
 Will delete monitors listed one per line in --fromFile and stored in db/targetaccount/monitors/timeStamp. The fetchentities.py script can help generate this file.
 
@@ -427,7 +443,9 @@ Will delete monitors listed one per line in --fromFile and stored in db/targetac
 
 #### Warning: All monitors in target account will be deleted
 
-`usage: deleteallmonitors.py [-h] [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION]`
+```
+usage: deleteallmonitors.py [-h] [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION]
+```
 
 deleteallmonitors fetches all the monitors. Backs them up in db/accountId/monitors/timeStamp-bakup And deletes all the monitors
 
@@ -485,12 +503,13 @@ Saves the mapping in db/<sourceAccount>/alert_policies/alert_policy_entity_map.j
 
 hostsFile can also be generated by using fetchentities script.
 
+```
 usage: fetchalldatatypes.py  --hostsFile HOSTS_FILE --sourceAccount SOURCE_ACCOUNT_ID --sourceApiKey SOURCE_API_KEY
 
                             --insightsQueryKey INSIGHTS_QUERY_KEY [--region NR_REGION]
 
 output : output/<entityName>.csv file for each entityName with names of metrics and events 
-
+```
 received from that entity
 
 ####  19) python3 wlgoldensignals.py

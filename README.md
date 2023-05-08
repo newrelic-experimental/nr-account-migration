@@ -325,30 +325,31 @@ if `--app_conditions` is specified.
 
 Migrate APM Apdex configuration settings. **This no longer migrates labels.** Please use migratetags.py instead for tag migrations.
 
+```
 usage: migrate_apm.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] 
                         --personalApiKey PERSONALAPIKEY --sourceApiKey
                         SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] 
                         --targetApiKey TARGETAPIKEY  [--settings]
-
+```
 ##### Note: Ensure target apps are running or were running recently so that the target ids can be picked
 
 
 ####  8) python3 migrate_dashboards.py
-
+```
 usage: migrate_dashboards.py [-h] --fromFile FROMFILE --sourceAccount [--sourceRegion SOURCEREGION] 
                              SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
                              --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] 
                              [--targetApiKey TARGETAPIKEY]
-
+```
 Migrate dashboards between accounts, including modifying queries to point to the new target account. The fetchentities.py script can help create the file to pass with fromFile.
 
 ####  9) python3 migratetags.py
-
+```
 usage: migratetags.py [-h] --fromFile FROMFILE --sourceAccount
                             SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY
                             --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION]  --targetApiKey TARGETAPIKEY
                             [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics]
-
+```
 Migrate entity tags between entities with matching names and entity types. 
 
 Parameter      | Note
@@ -383,7 +384,7 @@ Parameter     | Note
 ------------- | -------------------------------------------------------------------------
 fromFile      | Specifies the file with relative path, listing the monitors to be updated. The fetchentities.py script can help generate this file.
 targetAccount | Account in which monitors need to be updated
-targetRegion   | Optional region us (default) or eu
+targetRegion  | Optional region us (default) or eu
 targetApiKey  | This should be a User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Synthetics
 timeStamp     | must match the timeStamp generated in fetchmonitors
 renamePrefix  | Monitors are renamed with this prefix
@@ -452,35 +453,33 @@ deleteallmonitors fetches all the monitors. Backs them up in db/accountId/monito
 ##### Note: In case this script is used in error use migratemonitors to restore the backed up monitors
 
 ####  14) (optional) python3 store_policies.py
-
+```
 usage: store_policies.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY
-
+```
 Saves all alert polices in db/<sourceAccount>/alert_policies/alert_policies.json
 
 ####  15) (optional) python3 store_violations.py
-
+```
 usage: store_violations.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY --startDate STARTDATE --endDate ENDDATE [--onlyOpen]
+```
 
- --sourceAccount SOURCEACCOUNT Source accountId
-
- --sourceRegion' SOURCEREGION us (default) or eu
- 
-  --sourceApiKey SOURCEAPIKEY Source account API Key or set environment variable ENV_SOURCE_API_KEY
-  
-  --startDate STARTDATE startDate format 2020-08-03T19:18:00+00:00
-  
-  --endDate ENDDATE     endDate format 2020-08-04T19:18:00+00:00
-  
-  --onlyOpen            By default all violations are fetched pass --onlyOpen to fetch only open violations
+Parameter      | Note
+-------------- | --------------------------------------------------
+sourceAccount  | Source accountId
+sourceRegion   | us (default) or eu
+sourceApiKey   | Source account API Key or set environment variable ENV_SOURCE_API_KEY
+startDate      | startDate format 2020-08-03T19:18:00+00:00
+endDate        | endDate format 2020-08-04T19:18:00+00:00
+onlyOpen       | By default all violations are fetched pass --onlyOpen to fetch only open violations
  
 
 Saves all alert violations in db/<sourceAccount>/alert_violations/alert_violations.json
 and db/<sourceAccount>/alert_violations/alert_violations.csv    
 
 ####  16) (optional) python3 store_policy_entity_map.py
-
+```
 usage: store_policy_entity_map.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY --useLocal
-
+```
 Builds a mapping from APM, Browser, and Mobile applications and APM key
 transactions to and from alert policies for any policies which contain
 "app conditions" as identified by the
@@ -492,14 +491,14 @@ Saves the mapping in db/<sourceAccount>/alert_policies/alert_policy_entity_map.j
 ####  17) python3 nrmig
  Configure appropriate [config.ini](config.ini.example)  and run nrmig command 
 
- python3 nrmig -c ./config.ini migrate policies
+ `python3 nrmig -c ./config.ini migrate policies`
 
- python3 nrmig -c ./config.ini migrate conditions
+ `python3 nrmig -c ./config.ini migrate conditions`
 
 
 ####  18) python3 fetchalldatatypes
 
---hostsFile should contain hostNames(entityNames) one per line. 
+`--hostsFile` should contain hostNames(entityNames) one per line. 
 
 hostsFile can also be generated by using fetchentities script.
 
@@ -515,11 +514,11 @@ received from that entity
 ####  19) python3 wlgoldensignals.py
 Automated script for overriding and resetting golden signals for workloads. 
 ####Note: By default workloads only display 4 golden signals.
-
+```
 usage: wlgoldensignals.py --targetAccount TARGETACCOUNT --targetApiKey  TARGETAPIKEY [--targetRegion TARGETREGION]
                           [--tagName TAGNAME] [--tagValue TAGVALUE] [--goldenSignalsJson GOLDENSIGNALSJSON]
                           [--resetGoldenSignals] [--domain DOMAIN] [--type TYPE]
-
+```
 Parameter      | Note
 -------------- | --------------------------------------------------
 targetAccount  | Account containing the workloads
@@ -533,15 +532,17 @@ domain | domain for which to reset the golden signals APM , BROWSER , INFRA , MO
 type | type of entity APPLICATION , DASHBOARD , HOST , MONITOR , WORKLOAD
 
 #### example 1: override golden signals
+```
 python3 wlgoldensignals.py --targetAccount ACCT_ID --targetApiKey USER_API_KEY --goldenSignalsJson windowsgoldensignals.json --tagName Environment --tagValue WindowsProduction
 The above will find workloads having tag Environment=WindowsProduction and then for each workload 
 override the golden signals as specified in goldensignals/windowsgoldensignals.json for entities of domain INFRA and type HOST as specified in the json file
-
+```
 #### example 2: reset override golden signals
+```
 python3 wlgoldensignals.py --targetAccount ACCT_ID --targetApiKey USER_API_KEY --resetGoldenSignals --tagName Environment --tagValue WindowsProduction --domain INFRA --type HOST
 The above will find workloads having tag Environment=WindowsProduction and then for each workload 
 reset the golden signals for domain INFRA and type HOST
-
+```
 
 
 

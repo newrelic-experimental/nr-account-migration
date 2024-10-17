@@ -31,6 +31,7 @@ def configure_parser():
                         help='Pass --workloads to list matching Workload entities')
     parser.add_argument('--tagName', nargs=1, required=False, help='(Optional) Tag name to use when filtering results. Required if --tagValue is passed.')
     parser.add_argument('--tagValue', nargs=1, required=False, help='(Optional) Tag value to use when filtering results. Required if --tagName is passed.')
+    parser.add_argument('--assessment', dest='assessment', required=False, action='store_true', help='Pass --assessment to prefix entities, with account id')
     return parser
 
 
@@ -71,17 +72,19 @@ def parse_entity_types(args):
 
 
 def fetch_entities(src_account_id, src_api_key, entity_types, output_file, *,
-                   tag_name=None, tag_value=None, src_region='us'):
+                   tag_name=None, tag_value=None, src_region='us', assessment=None):
     entity_names = []
     for entity_type in entity_types:
         entities = ec.gql_get_entities_by_type(src_api_key, entity_type, src_account_id, tag_name, tag_value, src_region)
         for entity in entities['entities']:
-            entity_names.append(entity['name'])
+            entity_names.append(store.sanitize(entity['name']))
     entity_names_file = store.create_output_file(output_file)
     with entity_names_file.open('a') as entity_names_out:
         for entity_name in entity_names:
-            name = store.sanitize(entity_name)
-            entity_names_out.write(name + "\n")
+            if assessment:
+                entity_names_out.write(src_account_id + "," + entity_name + "\n")
+            else:
+                entity_names_out.write(entity_name + "\n")
         entity_names_out.close()
         logger.info("Wrote %s entities to file %s",len(entity_names), output_file)
 
@@ -106,10 +109,10 @@ def main():
     src_region = utils.ensure_source_region(args)
     print_params(args, src_api_key, entity_types, src_region)
     if args.tagName is None:
-        fetch_entities(args.sourceAccount[0], src_api_key, entity_types, args.toFile[0], src_region=src_region)
+        fetch_entities(args.sourceAccount[0], src_api_key, entity_types, args.toFile[0], src_region=src_region, assessment=args.assessment)
     else:
         fetch_entities(args.sourceAccount[0], src_api_key, entity_types, args.toFile[0], tag_name=args.tagName[0],
-                       tag_value=args.tagValue[0], src_region=src_region)
+                       tag_value=args.tagValue[0], src_region=src_region, assessment=args.assessment)
     
 
 if __name__ == '__main__':

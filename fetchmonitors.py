@@ -79,16 +79,16 @@ def populate_secure_credentials(monitor_json, src_account, insights_key, region)
 
 
 def fetch_monitors(api_key, account_id, output_file, insights_key='', region='us'):
+    timestamp = time.strftime("%Y-%m%d-%H%M%S")
+    storage_dir = store.create_storage_dirs(account_id, timestamp)
+    monitor_names_file = store.create_output_file(output_file)
     all_monitors_def_json = mc.fetch_all_monitors(api_key, region)
     monitors_count = len(all_monitors_def_json)
     if monitors_count <= 0:
         logger.warn("No monitors found in account " + account_id)
-        sys.exit()
+        return timestamp
     else:
         logger.info("Monitors returned %d", monitors_count)
-    timestamp = time.strftime("%Y-%m%d-%H%M%S")
-    storage_dir = store.create_storage_dirs(account_id, timestamp)
-    monitor_names_file = store.create_output_file(output_file)
     with monitor_names_file.open('a') as monitor_names_out:
         for monitor_def_json in all_monitors_def_json:
             monitor_json = {'definition': monitor_def_json}

@@ -649,9 +649,11 @@ def tags_diff(src_tags, tgt_tags):
                 match_found = True
                 continue
         if match_found == False:
-            tags_arr.append(src_tag)
+            if (src_tag['key'].startswith('nr.')):
+                logger.debug(f'Skipping reserved key: {src_tag}')
+            else:
+                tags_arr.append(src_tag)
     return tags_arr
-
 
 def mutate_tags_payload(entity_guid, arr_tags, mutate_action):
     apply_tags_query = '''mutation($entityGuid: EntityGuid!, $tags: [TaggingTagInput!]!) 
@@ -950,10 +952,15 @@ def get_nrql_condition_payload(account_id, condition_id):
                             policyId
                             runbookUrl
                             signal {
+                                aggregationDelay
+                                aggregationMethod
+                                aggregationTimer
                                 aggregationWindow
+                                evaluationDelay
                                 evaluationOffset
                                 fillOption
                                 fillValue
+                                slideBy
                             }
                             terms {
                                 operator

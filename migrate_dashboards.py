@@ -1,5 +1,6 @@
 import os
 import argparse
+import json
 import library.utils as utils
 import library.migrationlogger as m_logger
 import library.localstore as store
@@ -18,6 +19,8 @@ def print_args(args, src_api_key, src_region, tgt_api_key, tgt_region):
     log.info("Using targetAccount : " + str(args.targetAccount[0]))
     log.info("Using targetApiKey : " + len(tgt_api_key[:-4]) * "*" + tgt_api_key[-4:])
     log.info("targetRegion : " + tgt_region)
+    if args.accountMappingFile:
+        log.info("Using accountMappingFile : " + args.accountMappingFile[0])
 
 
 def configure_parser():
@@ -32,6 +35,7 @@ def configure_parser():
     parser.add_argument('--targetApiKey', nargs=1, type=str, required=True, help='Target API Key, \
                                                                     or set environment variable ENV_TARGET_API_KEY')
     parser.add_argument('--targetRegion', type=str, nargs=1, required=False, help='targetRegion us(default) or eu')
+    parser.add_argument('--accountMappingFile', nargs=1, required=False, help='Map account IDs to alternatives using a dictionary in a json file')
     return parser
 
 
@@ -55,7 +59,7 @@ def get_dashboard(per_api_key, name, all_db_status, acct_id, *, get_widgets=Fals
     return widgets_result['entity']
 
 
-def update_nrql_account_ids(src_acct_id, tgt_acct_id, entity):
+def update_nrql_account_ids(src_acct_id, tgt_acct_id, entity, account_mappings=None):
     if not 'pages' in entity:
         return
     for page in entity['pages']:
@@ -64,15 +68,40 @@ def update_nrql_account_ids(src_acct_id, tgt_acct_id, entity):
         for widget in page['widgets']:
             if not 'rawConfiguration' in widget:
                 continue
+            if 'accountId' in widget['rawConfiguration']:
+                if account_mappings:
+                    # Use account mappings (if available), keeps existing account if the account is not in the mapping dict
+                    mapped_account = account_mappings.get(str(widget['rawConfiguration']['accountId']), widget['rawConfiguration']['accountId'])
+                    widget['rawConfiguration']['accountId'] = int(mapped_account)
+                continue
             if not 'nrqlQueries' in widget['rawConfiguration']:
                 continue
             for query in widget['rawConfiguration']['nrqlQueries']:
-                if 'accountId' in query and query['accountId'] == src_acct_id:
-                    query['accountId'] = tgt_acct_id
+                if 'accountId' in query:
+                    if account_mappings:
+                        # Use account mappings (if available), defaults to tgt_acct_id if the account is not present in the mapping dict
+                        mapped_account = account_mappings.get(str(query['accountId']), tgt_acct_id)
+                        query['accountId'] = int(mapped_account)
+                    elif query['accountId'] == src_acct_id:
+                        query['accountId'] = tgt_acct_id
+                if 'accountIds' in query:
+                    for index, accountId in enumerate(query['accountIds']):
+                        if account_mappings:
+                            # Use account mappings (if available), defaults to tgt_acct_id if the account is not present in the mapping dict
+                            mapped_account = account_mappings.get(str(accountId), tgt_acct_id)
+                            query['accountIds'][index] = int(mapped_account)
+                        elif accountId == src_acct_id:
+                            query['accountIds'][index] = tgt_acct_id
 
 
-def migrate_dashboards(from_file, src_acct, src_api_key, src_region, tgt_acct, tgt_api_key, tgt_region):
+def migrate_dashboards(from_file, src_acct, src_api_key, src_region, tgt_acct, tgt_api_key, tgt_region, account_mapping_file=None):
     log.info('Dashboard migration started.')
+    account_mappings = None
+    if account_mapping_file:
+        # reading the data from the file
+        with open(account_mapping_file, 'r') as mapping_file:
+            data = mapping_file.read()
+        account_mappings = json.loads(data)
     db_names = store.load_names(from_file)
     all_db_status = {}
     for db_name in db_names:
@@ -90,10 +119,10 @@ def migrate_dashboards(from_file, src_acct, src_api_key, src_region, tgt_acct, t
         log.info('Found source dashboard ' + db_name)
         tgt_dashboard = src_dashboard
         del tgt_dashboard['guid']
-        update_nrql_account_ids(src_acct, tgt_acct, tgt_dashboard)
+        update_nrql_account_ids(src_acct, tgt_acct, tgt_dashboard, account_mappings)
         result = ec.post_dashboard(tgt_api_key, tgt_dashboard, tgt_acct, tgt_region)
         all_db_status[db_name][ds.STATUS] = result['status']
-        if result['entityCreated']:
+        if 'entityCreated' in result:
             log.info('Created target dashboard ' + db_name)
             all_db_status[db_name][ds.DASHBOARD_CREATED] = True
             all_db_status[db_name][ds.TARGET_DASHBOARD] = result['entity']['guid']
@@ -114,8 +143,9 @@ def main():
     src_region = utils.ensure_source_region(args)
     tgt_region = utils.ensure_target_region(args)
     print_args(args, src_api_key, src_region, tgt_api_key, tgt_region)
+    account_mapping_file = args.accountMappingFile[0] if args.accountMappingFile else None
     migrate_dashboards(args.fromFile[0], args.sourceAccount[0], src_api_key, src_region, args.targetAccount[0],
-                       tgt_api_key, tgt_region)
+                       tgt_api_key, tgt_region, account_mapping_file)
 
 
 if __name__ == '__main__':

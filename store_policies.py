@@ -37,7 +37,7 @@ def store_alert_policies(src_account, src_api_key, src_region):
     with policy_names_file.open('a') as policy_names_out:
         for policy in policies['policies']:
             policy_name = policy['name']
-            policy_name = store.sanitize(policy_name)
+            # policy_name = store.sanitize(policy_name)
             policy_names_out.write(policy_name + "\n")
         policy_names_out.close()
     log.info("Policy names stored in " + policy_file_name)

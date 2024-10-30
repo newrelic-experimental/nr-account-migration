@@ -1,0 +1,13 @@
+{
+    "SYNTHETIC_PERIOD_MAP": {
+        "1": "EVERY_MINUTE",
+        "5": "EVERY_5_MINUTES",
+        "10": "EVERY_10_MINUTES",
+        "15": "EVERY_15_MINUTES",
+        "30": "EVERY_30_MINUTES",
+        "60": "EVERY_HOUR",
+        "360": "EVERY_6_HOURS",
+        "720": "EVERY_12_HOURS",
+        "1440": "EVERY_DAY"
+    }
+}

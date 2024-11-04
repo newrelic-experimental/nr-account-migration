@@ -10,6 +10,7 @@ import library.monitortypes as monitortypes
 import library.securecredentials as securecredentials
 import library.status.monitorstatus as mskeys
 import library.utils as utils
+from config import load_config
 
 # migratemonitors must be used after doing a fetchmonitors
 # specify the source account, timestamp that you want to migrate
@@ -23,6 +24,9 @@ fetch_latest = True
 SYNTHETICS_ALERT_POLICY_NAME = 'Synthetics Check Failures'
 INCIDENT_PREFERENCE_OPTIONS = {'PER_POLICY': 'PER_POLICY', 'PER_CONDITION': 'PER_CONDITION',
                                'PER_CONDITION_TARGET': 'PER_CONDITION PER_CONDITION_AND_TARGET'}
+# Load the configuration
+private_location_mapping = load_config('minion_mapping.json')
+
 
 def configure_parser():
     parser = argparse.ArgumentParser(description='Migrate Synthetic Monitors from one account to another')
@@ -86,23 +90,22 @@ def migrate(all_monitors_json, src_api_key, src_region, tgt_api_key, tgt_region,
     for monitor_json in all_monitors_json:
         logger.debug(monitor_json)
         monitor_name = monitor_json['definition']['name']
-        source_monitor_id = monitor_json['definition']['guid']
+        source_monitor_guid = monitor_json['definition']['guid']
         if fetch_latest:
-            result = mc.MonitorsClient.get_monitor(src_api_key, source_monitor_id, src_region)
-            if result['status'] != 200:
-                logger.error('Did not find monitor ' + source_monitor_id)
-                logger.error(result)
+            monitor = mc.MonitorsClient.fetch_monitor(src_api_key, monitor_name, source_monitor_guid, src_region)
+            if monitor:
+                monitor_json['definition'] = mc.MonitorsClient.fetch_monitor(src_api_key, monitor_name, source_monitor_guid, src_region)
+            else:
                 continue
-            monitor_json['definition'] = result['monitor']
-        if minion_mapping_file:
-            # reading the data from the file
-            with open(minion_mapping_file, 'r') as mapping_file:
-                data = mapping_file.read()
-            mappings = json.loads(data)
-            for original_location in monitor_json['definition']['locations']:
-                if original_location in mappings.keys():
-                    revised_location = mappings[original_location]
-                    monitor_json['definition']['locations'] = [location.replace(original_location, revised_location) for location in monitor_json['definition']['locations']]
+        # if minion_mapping_file:
+        #     # reading the data from the file
+        #     with open(minion_mapping_file, 'r') as mapping_file:
+        #         data = mapping_file.read()
+        #     mappings = json.loads(data)
+        #     # Loop through the tags and replace private locations with the mapped locations
+        #     for tag in monitor_json['definition']['tags']:
+        #         if tag['key'] == 'privateLocation':
+        #             tag['values'] = [mappings.get(value, value) for value in tag['values']]
         mc.MonitorsClient.post_monitor_definition(tgt_api_key, monitor_name, monitor_json, monitor_status, tgt_acct_id, tgt_region)
         if monitortypes.is_scripted(monitor_json['definition']):
             scripted_monitors.append(monitor_json)

@@ -42,7 +42,7 @@ def delete(monitors, target_acct, tgt_api_key, region):
 
 
 def delete_all_monitors(api_key, target_acct, region):
-    all_monitors_def_json = monitorsclient.fetch_all_monitors(api_key, region)
+    all_monitors_def_json = monitorsclient.MonitorsClient.fetch_all_monitors(api_key, target_acct, region)
     timestamp = time.strftime("%Y-%m%d-%H%M%S") + "-bakup"
     storage_dir = localstore.create_storage_dirs(target_acct, timestamp)
     monitor_names_file = localstore.create_output_file("monitors-" + timestamp + ".csv")

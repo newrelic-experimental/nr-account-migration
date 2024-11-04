@@ -1,11 +1,14 @@
 from config import load_config
 
 # Load the configuration
-location_config = load_config('public_location_mapping.json')
+private_location_config = load_config('private_location_mapping.json')
+public_location_config = load_config('public_location_mapping.json')
 period_config = load_config('synthetic_period_mapping.json')
 
+# Access the PRIVATE_LOCATION_MAP from the configuration
+PRIVATE_LOCATION_MAP = private_location_config['PRIVATE_LOCATION_MAP']
 # Access the PUBLIC_LOCATION_MAP from the configuration
-PUBLIC_LOCATION_MAP = location_config['PUBLIC_LOCATION_MAP']
+PUBLIC_LOCATION_MAP = public_location_config['PUBLIC_LOCATION_MAP']
 # Access the SYNTHETIC_PERIOD_MAP from the configuration
 SYNTHETIC_PERIOD_MAP = period_config['SYNTHETIC_PERIOD_MAP']
 
@@ -17,7 +20,7 @@ PING = 'SIMPLE'
 
 
 def is_scripted(monitor):
-    return monitor['monitorType'] == SCRIPTED_BROWSER or monitor['monitorType'] == API_TEST
+    return ('monitorType' in monitor and monitor['monitorType'] == SCRIPTED_BROWSER) or ('type' in monitor and monitor['type'] == SCRIPTED_BROWSER) or ('monitorType' in monitor and monitor['monitorType'] == API_TEST) or ('type' in monitor and monitor['type'] == API_TEST)
 
 
 def prep_ping(monitor):
@@ -29,9 +32,14 @@ def prep_ping(monitor):
     period = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'period'][0][0]
     # map the period values using the period map
     period = SYNTHETIC_PERIOD_MAP[period]
-    public_locations = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'publicLocation'][0]
-    # map the public location values using the location map
-    public_locations = [PUBLIC_LOCATION_MAP[location] for location in public_locations]
+    private_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'privateLocation'), [])
+    if private_locations:
+        # map the private location values using the private location map
+        private_locations = [PRIVATE_LOCATION_MAP[location] for location in private_locations]
+    public_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'publicLocation'), [])
+    if public_locations:
+        # map the public location values using the public location map
+        public_locations = [PUBLIC_LOCATION_MAP[location] for location in public_locations]
     redirect_is_failure = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'redirectIsFailure'][0][0]
     response_validation_text = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'responseValidationText'][0][0]
     should_bypass_head_request = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'shouldBypassHeadRequest'][0][0]
@@ -47,6 +55,7 @@ def prep_ping(monitor):
             'useTlsValidation': bool(useTlsValidation)
         },
         'locations': {
+            'private': private_locations,
             'public': public_locations
         },
         'name': monitor['definition']['name'],
@@ -69,9 +78,14 @@ def prep_simple_browser(monitor):
     period = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'period'][0][0]
     # map the period values using the period map
     period = SYNTHETIC_PERIOD_MAP[period]
-    public_locations = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'publicLocation'][0]
-    # map the public location values using the location map
-    public_locations = [PUBLIC_LOCATION_MAP[location] for location in public_locations]
+    private_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'privateLocation'), [])
+    if private_locations:
+        # map the private location values using the private location map
+        private_locations = [PRIVATE_LOCATION_MAP[location] for location in private_locations]
+    public_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'publicLocation'), [])
+    if public_locations:
+        # map the public location values using the public location map
+        public_locations = [PUBLIC_LOCATION_MAP[location] for location in public_locations]
     response_validation_text = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'responseValidationText'][0][0]
     runtime_type = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeType'][0][0]
     runtime_type_version = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeTypeVersion'][0][0]
@@ -90,6 +104,7 @@ def prep_simple_browser(monitor):
         'browsers': browsers,
         'devices': devices,
         'locations': {
+            'private': private_locations,
             'public': public_locations
         },
         'name': monitor['definition']['name'],
@@ -114,9 +129,14 @@ def prep_scripted_browser(monitor):
     period = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'period'][0][0]
     # map the period values using the period map
     period = SYNTHETIC_PERIOD_MAP[period]
-    public_locations = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'publicLocation'][0]
-    # map the public location values using the location map
-    public_locations = [PUBLIC_LOCATION_MAP[location] for location in public_locations]
+    private_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'privateLocation'), [])
+    if private_locations:
+        # map the private location values using the private location map
+        private_locations = [PRIVATE_LOCATION_MAP[location] for location in private_locations]
+    public_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'publicLocation'), [])
+    if public_locations:
+        # map the public location values using the public location map
+        public_locations = [PUBLIC_LOCATION_MAP[location] for location in public_locations]
     runtime_type = next((tag['values'][0] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeType'), None)
     runtime_type_version = next((tag['values'][0] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeTypeVersion'), None)
     script_language = next((tag['values'][0] for tag in monitor['definition']['tags'] if tag['key'] == 'scriptLanguage'), None)
@@ -130,6 +150,7 @@ def prep_scripted_browser(monitor):
         'browsers': browsers,
         'devices': devices,
         'locations': {
+            'private': private_locations,
             'public': public_locations
         },
         'name': monitor['definition']['name'],
@@ -151,9 +172,14 @@ def prep_api_test(monitor):
     period = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'period'][0][0]
     # map the period values using the period map
     period = SYNTHETIC_PERIOD_MAP[period]
+    private_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'privateLocation'), [])
+    if private_locations:
+        # map the private location values using the private location map
+        private_locations = [PRIVATE_LOCATION_MAP[location] for location in private_locations]
     public_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'publicLocation'), [])
-    # map the public location values using the location map
-    public_locations = [PUBLIC_LOCATION_MAP[location] for location in public_locations]
+    if public_locations:
+        # map the public location values using the public location map
+        public_locations = [PUBLIC_LOCATION_MAP[location] for location in public_locations]
     runtime_type = next((tag['values'][0] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeType'), None)
     runtime_type_version = next((tag['values'][0] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeTypeVersion'), None)
     script_language = next((tag['values'][0] for tag in monitor['definition']['tags'] if tag['key'] == 'scriptLanguage'), None)
@@ -169,6 +195,7 @@ def prep_api_test(monitor):
     monitor_data = {
         'apdexTarget': float(apdex_target),
         'locations': {
+            'private': private_locations,
             'public': public_locations
         },
         'name': monitor['definition']['name'],
@@ -181,11 +208,11 @@ def prep_api_test(monitor):
 
 
 def prep_monitor_type(monitor):
-    if monitor['definition']['monitorType'] == 'BROWSER':
+    if ('type' in monitor['definition'] and monitor['definition']['type'] == 'BROWSER') or ('monitorType' in monitor['definition'] and monitor['definition']['monitorType'] == 'BROWSER'):
         return prep_simple_browser(monitor)
-    elif monitor['definition']['monitorType'] == 'SCRIPT_BROWSER':
+    elif ('type' in monitor['definition'] and monitor['definition']['type'] == 'SCRIPT_BROWSER') or ('monitorType' in monitor['definition'] and monitor['definition']['monitorType'] == 'SCRIPT_BROWSER'):
         return prep_scripted_browser(monitor)
-    elif monitor['definition']['monitorType'] == 'SIMPLE':
+    elif ('type' in monitor['definition'] and monitor['definition']['type'] == 'SIMPLE') or ('monitorType' in monitor['definition'] and monitor['definition']['monitorType'] == 'SIMPLE'):
         return prep_ping(monitor)
-    elif monitor['definition']['monitorType'] == 'SCRIPT_API':
+    elif ('type' in monitor['definition'] and monitor['definition']['type'] == 'SCRIPT_API') or ('monitorType' in monitor['definition'] and monitor['definition']['monitorType'] == 'SCRIPT_API'):
         return prep_api_test(monitor)

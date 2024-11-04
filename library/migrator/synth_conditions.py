@@ -20,7 +20,7 @@ def migrate(all_alert_status, policy_name, src_api_key, src_region, src_policy,
         condition_num = condition_num + 1
         condition_row = policy_name + '-scon' + str(condition_num)
         src_monitor_id = synth_condition[ac.MONITOR_ID]
-        src_monitor_name = mc.get_monitor(src_api_key, src_monitor_id, src_region)['monitor']['name']
+        src_monitor_name = mc.MonitorsClient.get_monitor(src_api_key, src_monitor_id, src_region)['monitor']['name']
         all_alert_status[condition_row] = {cs.COND_NAME: synth_condition['name']}
         all_alert_status[condition_row][cs.SRC_MONITOR] = src_monitor_name
         result = ec.gql_get_matching_entity_by_name(tgt_api_key, ec.SYNTH_MONITOR, src_monitor_name,

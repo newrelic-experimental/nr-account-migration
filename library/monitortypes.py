@@ -133,6 +133,8 @@ def prep_scripted_browser(monitor):
     if private_locations:
         # map the private location values using the private location map
         private_locations = [PRIVATE_LOCATION_MAP[location] for location in private_locations]
+        # create a dict of the private locations using the key 'guid'
+        private_locations = [{'guid': location} for location in private_locations]
     public_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'publicLocation'), [])
     if public_locations:
         # map the public location values using the public location map
@@ -176,6 +178,8 @@ def prep_api_test(monitor):
     if private_locations:
         # map the private location values using the private location map
         private_locations = [PRIVATE_LOCATION_MAP[location] for location in private_locations]
+        # create a dict of the private locations using the key 'guid'
+        private_locations = [{'guid': location} for location in private_locations]
     public_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'publicLocation'), [])
     if public_locations:
         # map the public location values using the public location map

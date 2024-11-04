@@ -42,7 +42,6 @@ DASHBOARDS_LIST_FILE = 'output/{}_dashboards.csv'.format(SRC_ACCT)
 APP_FILE = 'output/{}_apm.csv'.format(SRC_ACCT)
 src_mon_time_stamp = ''  # will be updated by fetch step
 ACCOUNT_MAPPING_FILE = 'account_mapping.json'
-MINION_MAPPING_FILE = 'minion_mapping.json'
 COND_TYPES = mc.ALL_CONDITIONS
 
 logger = m_logger.get_logger(os.path.basename(__file__))
@@ -91,7 +90,7 @@ def fetch():
 
 def migrate_step1():
     logger.info('migrating monitors')
-    mm.migrate_monitors('output/' + SRC_MON_LIST_FILE, SRC_ACCT, SRC_REGION, SRC_API_KEY, src_mon_time_stamp, TGT_ACCT, TGT_REGION, TGT_API_KEY, MINION_MAPPING_FILE)
+    mm.migrate_monitors('output/' + SRC_MON_LIST_FILE, SRC_ACCT, SRC_REGION, SRC_API_KEY, src_mon_time_stamp, TGT_ACCT, TGT_REGION, TGT_API_KEY)
     # Migrate Synthetic monitor entity tags
     mt.migrate_tags('output/' + SRC_MON_LIST_FILE, SRC_ACCT, SRC_REGION, SRC_API_KEY, TGT_ACCT, TGT_REGION, TGT_API_KEY, [ec.SYNTH_MONITOR])
 

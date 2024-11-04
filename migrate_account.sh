@@ -18,10 +18,10 @@ TARGET_API_KEY=NRAK-9876
 python3 fetchmonitors.py --sourceAccount $SOURCE_ACCOUNT_ID --region $SOURCE_ACCOUNT_REGION --sourceApiKey $SOURCE_API_KEY  --insightsQueryKey $SOURCE_INSIGHTS_QUERY_KEY --toFile ${SOURCE_ACCOUNT_ID}_monitors.csv
 SOURCE_MONITORS_TIMESTAMP=$(basename $(ls -td db/$SOURCE_ACCOUNT_ID/monitors/*/ | head -1))
 
-# Step 1a: [Manual] Check for private minion references and map in the minion_mapping.json file
+# Step 1a: [Manual] Check for private location references and map in the private_location_mapping.json file
 
 # Step 1b: Migrate monitors
-python3 migratemonitors.py --fromFile output/${SOURCE_ACCOUNT_ID}_monitors.csv --sourceAccount $SOURCE_ACCOUNT_ID --sourceRegion $SOURCE_ACCOUNT_REGION --sourceApiKey $SOURCE_API_KEY --targetAccount $TARGET_ACCOUNT_ID --targetRegion $TARGET_ACCOUNT_REGION --targetApiKey $TARGET_API_KEY --timeStamp $SOURCE_MONITORS_TIMESTAMP --minionMappingFile minion_mapping.json
+python3 migratemonitors.py --fromFile output/${SOURCE_ACCOUNT_ID}_monitors.csv --sourceAccount $SOURCE_ACCOUNT_ID --sourceRegion $SOURCE_ACCOUNT_REGION --sourceApiKey $SOURCE_API_KEY --targetAccount $TARGET_ACCOUNT_ID --targetRegion $TARGET_ACCOUNT_REGION --targetApiKey $TARGET_API_KEY --timeStamp $SOURCE_MONITORS_TIMESTAMP
 
 # Step 1c: Migrate synthetic monitor tags
 migratetags.py --fromFile output/${SOURCE_ACCOUNT_ID}_monitors.csv --sourceAccount $SOURCE_ACCOUNT_ID --sourceRegion $SOURCE_ACCOUNT_REGION --sourceApiKey $SOURCE_API_KEY --targetAccount $TARGET_ACCOUNT_ID --targetRegion $TARGET_ACCOUNT_REGION --targetApiKey $TARGET_API_KEY --synthetics --securecreds

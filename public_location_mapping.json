@@ -1,0 +1,24 @@
+{
+    "PUBLIC_LOCATION_MAP": {
+        "Hong Kong, HK": "AWS_AP_EAST_1",
+        "Mumbai, IN": "AWS_AP_SOUTH_1",
+        "Singapore, SG": "AWS_AP_SOUTHEAST_1",
+        "Seoul, KR": "AWS_AP_NORTHEAST_2",
+        "Tokyo, JP": "AWS_AP_NORTHEAST_1",
+        "Sydney, AU": "AWS_AP_SOUTHEAST_2",
+        "San Francisco, CA, USA": "AWS_US_WEST_1",
+        "Portland, OR, USA": "AWS_US_WEST_2",
+        "Columbus, OH, USA": "AWS_US_EAST_2",
+        "Washington, DC, USA": "AWS_US_EAST_1",
+        "Montreal, Québec, CA": "AWS_CA_CENTRAL_1",
+        "São Paulo, BR": "AWS_SA_EAST_1",
+        "Dublin, IE": "AWS_EU_WEST_1",
+        "London, England, UK": "AWS_EU_WEST_2",
+        "Paris, FR": "AWS_EU_WEST_3",
+        "Frankfurt, DE": "AWS_EU_CENTRAL_1",
+        "Stockholm, SE": "AWS_EU_NORTH_1",
+        "Milan, IT": "AWS_EU_SOUTH_1",
+        "Manama, BH": "AWS_ME_SOUTH_1",
+        "Cape Town, ZA": "AWS_AF_SOUTH_1"
+    }
+}

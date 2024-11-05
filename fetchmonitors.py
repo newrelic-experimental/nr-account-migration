@@ -22,27 +22,31 @@ headers = {}
 source_api_key = ""
 
 
-parser = argparse.ArgumentParser(description='Get list of all monitors')
-# store API Test and Scripted browser montiors to fetch their library in the next step
+# store API Test and Scripted browser monitors to fetch their library in the next step
 script_monitors = []
 
-
-def setup_params():
+def configure_parser():
+    parser = argparse.ArgumentParser(description='Get a list of all monitors')
     parser.add_argument('--sourceAccount', nargs=1, required=True, help='Source accountId')
     parser.add_argument('--sourceApiKey', nargs=1, required=False, help='Source API Key or \
     set env var ENV_SOURCE_API_KEY')
+    # parser.add_argument('--secureCredentials', action='store_true', required=False, help='Fetch secure credential (keys only)')
     parser.add_argument('--insightsQueryKey', type=str, nargs=1, required=False, help='Insights Query Key to '
                                                                                       'fetch secure credentials')
-    parser.add_argument('--region', type=str, nargs=1, required=False, help='region us(default) or eu')
+    parser.add_argument('--region', type=str, nargs=1, required=False, default='us', help='region us(default) or eu')
     parser.add_argument('--toFile', nargs=1, required=True, help='File to populate monitor names. '
                                                                  'This will be created in output directory')
+    return parser
 
 
 def print_params(args, src_api_key, region):
     logger.info("Using sourceAccount : " + str(args.sourceAccount[0]))
     logger.info("Using sourceApiKey : " + len(src_api_key[:-4])*"*"+src_api_key[-4:])
     logger.info("region : " + region)
-
+    # if 'secureCredentials' in args and args.secureCredentials:
+    #    logger.info("Fetching secure credential keys")
+    # else:
+    #     logger.info("Will skip fetching secure credential keys, as --secureCredentials is not provided")
     if 'insightsQueryKey' in args and args.insightsQueryKey:
         logger.info("Using insightsQueryKey to fetch secure credentials : " +
                     len(args.insightsQueryKey[0][:-4]) * "*" + args.insightsQueryKey[0][-4:])
@@ -51,10 +55,10 @@ def print_params(args, src_api_key, region):
     logger.info("Using toFile : " + args.toFile[0])
 
 
-def setup_headers(api_key):
+def setup_headers(args):
     global source_api_key
     if args.sourceApiKey:
-        source_api_key = api_key
+        source_api_key = args.sourceApiKey[0]
         headers['Api-Key'] = args.sourceApiKey[0]
     else:
         source_api_key = os.environ.get('ENV_SOURCE_API_KEY')
@@ -67,7 +71,7 @@ def validate_keys():
     if not source_api_key:
         logger.error('Error: Missing API Key. either pass as param ---sourceApiKey or \
                 environment variable ENV_SOURCE_API_KEY.\n \
-                e.g. export SOURCE_API_KEY="NRNA7893asdfhkh"')
+                e.g. export SOURCE_API_KEY="NRAK-abcdefg"')
         sys.exit()
 
 
@@ -78,11 +82,12 @@ def populate_secure_credentials(monitor_json, src_account, insights_key, region)
         monitor_json.update(sec_credentials_checks)
 
 
-def fetch_monitors(api_key, account_id, output_file, insights_key='', region='us'):
+def fetch_monitors(api_key, account_id, output_file, insights_key, region):
     timestamp = time.strftime("%Y-%m%d-%H%M%S")
     storage_dir = store.create_storage_dirs(account_id, timestamp)
     monitor_names_file = store.create_output_file(output_file)
-    all_monitors_def_json = mc.fetch_all_monitors(api_key, region)
+    all_monitors_def_json = mc.MonitorsClient.fetch_all_monitors(api_key, account_id, region)
+    
     monitors_count = len(all_monitors_def_json)
     if monitors_count <= 0:
         logger.warn("No monitors found in account " + account_id)
@@ -96,21 +101,25 @@ def fetch_monitors(api_key, account_id, output_file, insights_key='', region='us
             monitor_names_out.write(monitor_name + "\n")
             if monitortypes.is_scripted(monitor_json['definition']):
                 populate_secure_credentials(monitor_json, account_id, insights_key, region)
-                mc.populate_script(api_key, monitor_json, monitor_json['definition']['id'])
+                mc.MonitorsClient.populate_script(api_key, account_id, monitor_json, monitor_json['definition']['guid'], region)
             store.save_monitor_to_file(monitor_name, storage_dir, monitor_json)
     logger.info("Fetched %d monitors in %s", len(all_monitors_def_json), storage_dir)
     return timestamp
 
 
-if __name__ == '__main__':
+def main():
     start_time = time.time()
-    setup_params()
+    parser = configure_parser()
     args = parser.parse_args()
-    setup_headers(args.sourceApiKey[0])
-    args_insights_key = ''
+    setup_headers(args)
+    args_insights_key = None
     if args.insightsQueryKey:
         args_insights_key = args.insightsQueryKey[0]
     region = utils.ensure_region(args)
     print_params(args, args.sourceApiKey[0], region)
-    fetch_monitors(source_api_key, str(args.sourceAccount[0]), args.toFile[0], args_insights_key, )
+    fetch_monitors(source_api_key, str(args.sourceAccount[0]), args.toFile[0], args_insights_key, region)
     logger.info("Time taken : " + str(time.time() - start_time) + "seconds")
+
+
+if __name__ == '__main__':
+    main()

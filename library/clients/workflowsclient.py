@@ -6,6 +6,7 @@ import library.clients.gql as nerdgraph
 
 logger = nrlogger.get_logger(os.path.basename(__file__))
 
+ISSUES_FILTER_DEFAULT_NAME = 'Default Issue Filter name'
 
 class WorkflowsClient:
 
@@ -121,6 +122,9 @@ class WorkflowsClient:
                 logger.debug(f"Copying existing predicate {predicate}")
                 predicates.append(predicate)
         if 'issuesFilter' in workflow:
+            if 'name' not in workflow['issuesFilter'] or workflow['issuesFilter']['name'] == '':
+                # Add default name if missing following breaking change in NerdGraph (https://github.com/newrelic/terraform-provider-newrelic/pull/2107)
+                workflow['issuesFilter']['name'] = ISSUES_FILTER_DEFAULT_NAME
             workflowData['issuesFilter'] = {
                 'name': workflow['issuesFilter']['name'],  # String: this is a guid, which is unexpected
                 'predicates': predicates,  # [AiWorkflowsPredicateInput!]!:

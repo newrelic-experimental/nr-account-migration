@@ -268,6 +268,9 @@ class MonitorsClient:
             elif monitor['definition']['monitorType'] == 'CERT_CHECK':
                 monitor_type_function = monitortypes.CERT_CHECK_FUNCTION
                 payload = MonitorsClient.create_monitor_gql(tgt_acct_id, monitor_data, monitor_type_function, monitortypes.CERT_CHECK_INPUT_TYPE)
+            elif monitor['definition']['monitorType'] == 'BROKEN_LINKS':
+                monitor_type_function = monitortypes.BROKEN_LINKS_FUNCTION
+                payload = MonitorsClient.create_monitor_gql(tgt_acct_id, monitor_data, monitor_type_function, monitortypes.BROKEN_LINKS_INPUT_TYPE)
             logger.debug(json.dumps(payload))
             result = nerdgraph.GraphQl.post(api_key, payload, region)
             post_status = {monitorstatus.STATUS: result['status']}

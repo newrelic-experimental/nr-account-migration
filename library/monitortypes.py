@@ -276,6 +276,47 @@ def prep_cert_check(monitor):
     return monitor_data
 
 
+def prep_broken_links(monitor):
+    # Using list comprehension get the tag values with corresponding keys e.g. 'apdexTarget'
+    apdex_target = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'apdexTarget'][0][0]
+    private_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'privateLocation'), [])
+    if private_locations:
+        # map the private location values using the private location map
+        private_locations = [PRIVATE_LOCATION_MAP[location] for location in private_locations]
+        # create a dict of the private locations using the key 'guid'
+        private_locations = [{'guid': location} for location in private_locations]
+    public_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'publicLocation'), [])
+    if public_locations:
+        # map the public location values using the public location map
+        public_locations = [PUBLIC_LOCATION_MAP[location] for location in public_locations]
+    period = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'period'][0][0]
+    # map the period values using the period map
+    period = SYNTHETIC_PERIOD_MAP[period]
+    runtime_type = next((tag['values'][0] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeType'), None)
+    runtime_type_version = next((tag['values'][0] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeTypeVersion'), None)
+    # Create a dictionary with the api monitor data
+    if runtime_type:  # legacy monitors do not have runtime
+        runtime = {
+            'runtimeType': runtime_type,
+            'runtimeTypeVersion': runtime_type_version
+        }
+    else:
+        runtime = None
+    monitor_data = {
+        'apdexTarget': float(apdex_target),
+        'locations': {
+            'private': private_locations,
+            'public': public_locations
+        },
+        'name': monitor['definition']['name'],
+        'period': period,
+        'runtime': runtime,
+        'status': 'DISABLED',
+        'uri': monitor['definition']['monitoredUrl']
+    }
+    return monitor_data
+
+
 def prep_monitor_type(monitor):
     if ('type' in monitor['definition'] and monitor['definition']['type'] == 'BROWSER') or ('monitorType' in monitor['definition'] and monitor['definition']['monitorType'] == 'BROWSER'):
         return prep_simple_browser(monitor)
@@ -287,3 +328,5 @@ def prep_monitor_type(monitor):
         return prep_api_test(monitor)
     elif ('type' in monitor['definition'] and monitor['definition']['type'] == 'SCRIPT_API') or ('monitorType' in monitor['definition'] and monitor['definition']['monitorType'] == 'CERT_CHECK'):
         return prep_cert_check(monitor)
+    elif ('type' in monitor['definition'] and monitor['definition']['type'] == 'BROKEN_LINKS') or ('monitorType' in monitor['definition'] and monitor['definition']['monitorType'] == 'BROKEN_LINKS'):
+        return prep_broken_links(monitor)

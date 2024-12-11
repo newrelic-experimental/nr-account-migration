@@ -191,6 +191,15 @@ def load_script(monitor_dir, monitor):
             logger.error("Script file does not exist " + script_file.name)
 
 
+def load_steps(monitor_dir, monitor):
+    if monitortypes.is_step_monitor(monitor):
+        steps_file = monitor_dir / "steps.json"
+        if steps_file.exists():
+            monitor['steps'] = json.loads(steps_file.read_text())
+        else:
+            logger.error("Steps file does not exist " + steps_file.name)
+
+
 def load_monitors(account_id, timestamp, monitor_names):
     monitors = []
     db_dir = Path(DB_DIR)

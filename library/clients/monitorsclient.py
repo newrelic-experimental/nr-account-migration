@@ -189,6 +189,25 @@ class MonitorsClient:
 
 
     @staticmethod
+    def query_steps_gql(account_id, entity_guid):
+        query = '''query ($accountId: Int!, $entityGuid: EntityGuid!) {
+            actor {
+                account(id: $accountId) {
+                    synthetics {
+                        steps(monitorGuid: $entityGuid) {
+                            ordinal
+                            type
+                            values
+                        }
+                    }
+                }
+            }
+        }'''        
+        variables = {'accountId': int(account_id), 'entityGuid': entity_guid}
+        return {'query': query, 'variables': variables}
+
+
+    @staticmethod
     def fetch_script(api_key, account_id, monitor_name, entity_guid, region):
         script_text = None
         try:
@@ -222,6 +241,40 @@ class MonitorsClient:
         # TODO: Check if script_text is None?
         # TODO: base64 encode script_text?
         monitor_json['script'] = script_text
+
+
+    @staticmethod
+    def fetch_steps(api_key, account_id, monitor_name, entity_guid, region):
+        steps = None
+        try:
+            payload = MonitorsClient.query_steps_gql(account_id, entity_guid)
+            logger.debug(json.dumps(payload))
+            result = nerdgraph.GraphQl.post(api_key, payload, region)
+            logger.debug(json.dumps(result))
+            if ('error' in result):
+                logger.error(f'Could not fetch steps')
+                logger.error(result['error'])
+            else:
+                # No error attribute for steps
+                if 'response' in result:
+                    logger.info("got steps for " + monitor_name)
+                    steps = result['response']['data']['actor']['account']['synthetics']['steps']
+                else:
+                    logger.error(f'Could not fetch steps')
+                    logger.error(result)
+        except Exception as e:
+            logger.error(f'Error querying {monitor_name} steps for account {account_id} with entity_guid {entity_guid}')
+            logger.error(e)
+        logger.debug("Fetched steps : " + json.dumps(steps))
+        return steps
+
+
+    @staticmethod
+    def populate_steps(api_key, account_id, monitor_json, entity_guid, region):
+        monitor_name = monitor_json['definition']['name']
+        logger.info(f'Querying {monitor_name} script for account {account_id}, with entity_guid {entity_guid}')
+        steps = MonitorsClient.fetch_steps(api_key, account_id, monitor_name, entity_guid, region)
+        monitor_json['steps'] = steps
 
 
     @staticmethod
@@ -271,6 +324,12 @@ class MonitorsClient:
             elif monitor['definition']['monitorType'] == 'BROKEN_LINKS':
                 monitor_type_function = monitortypes.BROKEN_LINKS_FUNCTION
                 payload = MonitorsClient.create_monitor_gql(tgt_acct_id, monitor_data, monitor_type_function, monitortypes.BROKEN_LINKS_INPUT_TYPE)
+            elif monitor['definition']['monitorType'] == 'STEP_MONITOR':
+                monitor_type_function = monitortypes.STEP_MONITOR_FUNCTION
+                payload = MonitorsClient.create_monitor_gql(tgt_acct_id, monitor_data, monitor_type_function, monitortypes.STEP_MONITOR_INPUT_TYPE)
+            else:
+                logger.error(f'Unknown monitor type {monitor["definition"]["monitorType"]}')
+                return guid
             logger.debug(json.dumps(payload))
             result = nerdgraph.GraphQl.post(api_key, payload, region)
             post_status = {monitorstatus.STATUS: result['status']}
@@ -331,6 +390,20 @@ def put_script(api_key, monitor_json, monitor_name, monitor_status):
         logger.warn("No location found in monitor_status. Most likely it did not get created")
         monitor_status[monitor_name][monitorstatus.SCRIPT_STATUS] = -1
         monitor_status[monitor_name][monitorstatus.SCRIPT_MESSAGE] = 'MonitorNotFound'
+    logger.info(monitor_status[monitor_name])
+
+
+def put_steps(api_key, monitor_json, monitor_name, monitor_status):
+    steps_payload = json.dumps(monitor_json['steps'])
+    if 'location' in monitor_status[monitor_name]:
+        steps_url = monitor_status[monitor_name]['location'] + "/steps"
+        steps_response = requests.put(steps_url, headers=MonitorsClient.setup_headers(api_key), data=steps_payload)
+        monitor_status[monitor_name][monitorstatus.STEPS_STATUS] = steps_response.status_code
+        monitor_status[monitor_name][monitorstatus.STEPS_MESSAGE] = steps_response.text
+    else:
+        logger.warn("No location found in monitor_status. Most likely it did not get created")
+        monitor_status[monitor_name][monitorstatus.STEPS_STATUS] = -1
+        monitor_status[monitor_name][monitorstatus.STEPS_MESSAGE] = 'MonitorNotFound'
     logger.info(monitor_status[monitor_name])
 
 

@@ -102,6 +102,8 @@ def fetch_monitors(api_key, account_id, output_file, insights_key, region):
             if monitortypes.is_scripted(monitor_json['definition']):
                 populate_secure_credentials(monitor_json, account_id, insights_key, region)
                 mc.MonitorsClient.populate_script(api_key, account_id, monitor_json, monitor_json['definition']['guid'], region)
+            if monitortypes.is_step_monitor(monitor_json['definition']):
+                mc.MonitorsClient.populate_steps(api_key, account_id, monitor_json, monitor_json['definition']['guid'], region)
             store.save_monitor_to_file(monitor_name, storage_dir, monitor_json)
     logger.info("Fetched %d monitors in %s", len(all_monitors_def_json), storage_dir)
     return timestamp

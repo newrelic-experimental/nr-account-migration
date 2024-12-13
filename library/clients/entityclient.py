@@ -6,6 +6,9 @@ import collections
 import logging
 from library.clients.endpoints import Endpoints
 
+# Fix for deprecation of collections.Sequence in Python 3.7 and subsequent removal in 3.10
+collections.Sequence = collections.abc.Sequence
+
 APM_APP = 'APM_APP'
 APM_KT = 'APM_KT'
 BROWSER_APP = 'BROWSER_APP'

@@ -236,6 +236,7 @@ usage: store_policies.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOUR
 ```
 Saves all alert polices in db/\<sourceAccount\>/alert_policies/alert_policies.json and output/\<sourceAccount\>_policies.csv; the latter is required as input for migratepolicies.py as the --fromFile argument.
 
+
 ####  6) python3 migratepolicies.py
 Preconditions: store_policies.py.
 ```
@@ -376,6 +377,7 @@ if `--app_conditions` is specified.
 ```
 usage: migrate_notifications.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY]
 ```
+
 
 Parameter      | Note
 -------------- | --------------------------------------------------

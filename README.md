@@ -66,14 +66,15 @@ The details for each script is provided in the next Usage section.
 | No. | Use Case                   |             Scripts | 
 | --- | -------------------------- | ------------------- | 
 | 1.  | Migrate Monitors           | fetchmonitors.py :arrow_right: migratemonitors.py :arrow_right: migratetags.py | 
-| 2.  | Migrate Alert policies     | fetchchannels.py(optional) :arrow_right: migratepolicies.py | 
-| 3.  | Migrate Alert conditions   | migratepolicies.py :arrow_right: migrateconditions.py | 
-| 4.  | Migrate APM Configurations | migrate_apm.py :arrow_right: migratetags.py |
-| 5.  | Migrate Dashboards | migrate_dashboards.py :arrow_right: migratetags.py |
-| 6.  | Update Monitors | updatemonitors.py | 
-| 7.  | Delete Monitors | deletemonitors.py | 
-| 8.  | Migrate Tags | migratetags.py |
-| 9.  | Update Workload Golden Signals | wlgoldensignals.py |
+| 2.  | Migrate Alert policies     | fetchchannels.py(optional) :arrow_right: store_policies.py :arrow_right: migratepolicies.py | 
+| 3.  | Migrate Alert conditions   | store_policies.py :arrow_right: migratepolicies.py :arrow_right: migrateconditions.py | 
+| 4.  | Migrate Alert notifications | store_policies.py :arrow_right: migratepolicies.py :arrow_right: migrateconditions.py :arrow_right: migrate_notifications.py | 
+| 5.  | Migrate APM Configurations | migrate_apm.py :arrow_right: migratetags.py |
+| 6.  | Migrate Dashboards | migrate_dashboards.py :arrow_right: migratetags.py |
+| 7.  | Update Monitors | updatemonitors.py | 
+| 8.  | Delete Monitors | deletemonitors.py | 
+| 9.  | Migrate Tags | migratetags.py |
+| 10.  | Update Workload Golden Signals | wlgoldensignals.py |
 
 
 The following entities and configurations can be migrated:
@@ -90,7 +91,7 @@ The following entities and configurations can be migrated:
 | ----------- | ------------------------- | 
 
 - [x] Alert Policies and related notification channels
-- [x] Notification channels (tested for email, webhook, pagerduty, opsgenie) - credentials populated with dummy values
+- [x] Notification destinations, channels, and workflows (tested for email, webhook, pagerduty, opsgenie) - credentials populated with dummy values
 
 | Config Type | Alert Conditions     |
 | ----------- | -----------------    | 
@@ -122,9 +123,9 @@ APM Configuration
 
 ```
 usage: fetchmonitors.py --sourceAccount SOURCEACCOUNT --region [ us (default) |eu ]
-                    --sourceApiKey SOURCEAPIKEY  
-                    --insightsQueryKey INSIGHTSQUERYKEY
-                    --toFile TOFILE
+                        --sourceApiKey SOURCEAPIKEY  
+                        --insightsQueryKey INSIGHTSQUERYKEY
+                        --toFile TOFILE
 ```
 
 Parameter        | Note
@@ -140,9 +141,9 @@ toFile           | should only be a file name e.g. soure-monitors.csv. It will a
 
 
 ####  3) python3 fetchchannels.py (optional if you want to use --useLocal option during migratepolicies)
-
-`usage: fetchchannels.py  --sourceAccount SOURCEACCOUNT [--sourceApiKey SOURCEAPIKEY] --region [ us (default) |eu ]`
-
+```
+usage: fetchchannels.py  --sourceAccount SOURCEACCOUNT [--sourceApiKey SOURCEAPIKEY] --region [ us (default) |eu ]
+```
 Fetches alert channels and builds a dictionary mapping channels to policy_id.
 
 The channels are stored in db/accountId/alert_policies/alert_channels.json
@@ -150,8 +151,9 @@ The channels are stored in db/accountId/alert_policies/alert_channels.json
 During migratepolicies the stored alert_channels can be used by passing --useLocal
 
 ####  4) python3 migratemonitors.py
-
-`usage: migratemonitors.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT  [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] --timeStamp TIMESTAMP [--useLocal]`
+```
+usage: migratemonitors.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT  [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] --timeStamp TIMESTAMP [--useLocal]
+```
 
 Parameter     | Note
 ------------- | --------------------------------------------------------------------------------------------------------
@@ -181,15 +183,23 @@ Comma separated status for each migrated monitor as below.
 
 A value of 0 CHECK_COUNT for scripted monitors indicates it has not run in the past 7 days.
 
-####  5) python3 migratepolicies.py
+####  5) python3 store_policies.py
 
-`usage: migratepolicies.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--useLocal]`
+```
+usage: store_policies.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY
+```
+Saves all alert polices in db/\<sourceAccount\>/alert_policies/alert_policies.json and output/\<sourceAccount\>_policies.csv; the latter is required as input for migratepolicies.py as the --fromFile argument.
+
+####  6) python3 migratepolicies.py
+Preconditions: store_policies.py.
+```
+usage: migratepolicies.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--useLocal]
+```
 
 Parameter        | Note
 ---------------- | ------------------------------------------------------------------------------------------------------
 fromFile         | must contain alert policy names one per line
 fromFileEntities | must contain APM, Browser, or Mobile application names or IDs or APM KT names or IDs (not GUIDs)
-personalApiKey   | Personal API Key used for GraphQL API Client calls
 sourceAccount    | Account to fetch monitors from
 sourceRegion     | Optional region us (default) or eu
 sourceApiKey     | User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Alerts
@@ -261,19 +271,20 @@ to move will be the union of both.
 
 [NAME, POLICY_EXISTED, POLICY_CREATED, STATUS, ERROR, CHANNELS, PUT_CHANNELS]
 
-####  6) python3 migrateconditions.py
+####  7) python3 migrateconditions.py
 
 **Preconditions:** migratemonitors(if migrating synthetic conditions) and migratepolicies.
 
 Any target APM , Browser, Mobile apps and Key transactions must be migrated manually.
 
-`usage: migrateconditions.py [-h] --fromFile FROMFILE --personalApiKey PERSONALAPIKEY --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--matchSourceState] [--synthetics --app_conditions --nrql_conditions --infra_conditions]`
+```
+usage: migrateconditions.py [-h] --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--matchSourceState] [--synthetics --app_conditions --nrql_conditions --infra_conditions]
+```
 
 Parameter      | Note
 -------------- | --------------------------------------------------
 fromFile       | must contain alert policy names one per line
 fromFileEntities | must contain APM, Browser, or Mobile application names or IDs or APM KT names or IDs (not GUIDs)
-personalApiKey | Personal API Key used for GraphQL API Client calls
 sourceAccount  | Account to fetch monitors from
 sourceRegion   | Optional region us (default) or eu
 sourceApiKey   | User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Alerts
@@ -311,24 +322,47 @@ if `--app_conditions` is specified.
 
 **Status:** output/sourceAccount_fromFileName_fromFileEntitiesName_targetAccount_conditions.csv
 
-####  7) python3 migrate_apm.py (Migrate settings for APM apps)
+####  8) python3 migrate_notifications.py (migrate destinations, channels, and workflows)
+
+
+**Preconditions:** `store_policies`, `migratepolicies`, and `migrateconditions`.
+
+```
+usage: migrate_notifications.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY]
+```
+
+Parameter      | Note
+-------------- | --------------------------------------------------
+sourceAccount  | Account to fetch monitors from
+sourceRegion   | Optional region us (default) or eu
+sourceApiKey   | User API Key for sourceAccount for a user with admin (or add on / custom role equivalent) access to Alerts
+targetAccount  | Account to migrate policies to
+targetRegion   | Optional region us (default) or eu
+targetApiKey   | User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Alerts
+
+This script migrates notification destinations, channels, and workflows.
+
+**Warning:** Note that supported destination types are:
+1. DESTINATION_TYPE_EMAIL,
+1. DESTINATION_TYPE_MOBILE_PUSH,
+1. DESTINATION_TYPE_SLACK_LEGACY,
+1. DESTINATION_TYPE_WEBHOOK
+
+
+####  9) python3 migrate_apm.py (Migrate settings for APM apps)
 
 Migrate APM Apdex configuration settings. **This no longer migrates labels.** Please use migratetags.py instead for tag migrations.
-
-usage: migrate_apm.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] 
-                        --personalApiKey PERSONALAPIKEY --sourceApiKey
-                        SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] 
-                        --targetApiKey TARGETAPIKEY  [--settings]
-
+```
+usage: migrate_apm.py --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --targetApiKey TARGETAPIKEY  [--settings]
+```
 ##### Note: Ensure target apps are running or were running recently so that the target ids can be picked
 
 
-####  8) python3 migrate_dashboards.py
+####  10) python3 migrate_dashboards.py
 
-`usage: migrate_dashboards.py [-h] --fromFile FROMFILE --sourceAccount [--sourceRegion SOURCEREGION] 
-                             SOURCEACCOUNT --sourceApiKey SOURCEAPIKEY
-                             --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] 
-                             [--targetApiKey TARGETAPIKEY] [--accountMappingFile ACCOUNTMAPPINGFILE]`
+```
+usage: migrate_dashboards.py [-h] --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] [--targetApiKey TARGETAPIKEY] [--accountMappingFile ACCOUNTMAPPINGFILE]
+```
 
 Migrate dashboards between accounts, including modifying queries to point to the new target account. The fetchentities.py script can help create the file to pass with fromFile.
 
@@ -343,12 +377,11 @@ targetRegion  | Optional region us (default) or eu
 targetApiKey  | This should be a User API Key for targetAccount for a user with admin (or add on / custom role equivalent) access to Dashboards
 accountMappingFile  | Map account ids to alternatives using a dictionary in a [JSON file](account_mapping.json). Useful when moving between regions, e.g. from the us to eu region.
 
-####  9) python3 migratetags.py
+####  11) python3 migratetags.py
 
-`usage: migratetags.py [-h] --fromFile FROMFILE --sourceAccount
-                            SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY
-                            --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION]  --targetApiKey TARGETAPIKEY
-                            [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics]`
+```
+usage: migratetags.py [-h] --fromFile FROMFILE --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION] --sourceApiKey SOURCEAPIKEY --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --targetApiKey TARGETAPIKEY [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics]
+```
 
 Migrate entity tags between entities with matching names and entity types. 
 
@@ -372,11 +405,13 @@ securecreds    | Pass this flag to migrate Synthetic secure credential entity ta
 synthetics     | Pass this flag to migrate Synthetic monitor entity tags
 
 
-####  10) python3 updatemonitors.py **Note:** Must use fetchmonitors before using updatemonitors
+####  12) python3 updatemonitors.py **Note:** Must use fetchmonitors before using updatemonitors
 
 Potential use is for renaming/disabling migrated monitors in source account.
 
-`usage: updatemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --timeStamp TIMESTAMP [--renamePrefix RENAMEPREFIX] [--disable]`
+```
+usage: updatemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --timeStamp TIMESTAMP [--renamePrefix RENAMEPREFIX] [--disable]
+```
 
 Parameter     | Note
 ------------- | -------------------------------------------------------------------------
@@ -399,12 +434,10 @@ output/targetAccount_fromFile_updated_monitors.csv
 
 **Status keys:** [STATUS, UPDATED_NAME, UPDATED_STATUS, UPDATED_JSON, ERROR]
 
-####  11) python3 fetchentities.py
-
-usage: fetchentities.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY
-                            --toFile FILENAME [--tagName TAGNAME --tagValue TAGVALUE]
-                            [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics] 
-
+####  13) python3 fetchentities.py
+```
+usage: fetchentities.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY --toFile FILENAME [--tagName TAGNAME --tagValue TAGVALUE] [--apm --browser --dashboards --infrahost --infraint --lambda --mobile --securecreds --synthetics]
+```
 Create a file in the output directory that contains entity names from the source account. This can be filtered by using --tagName and --tagValue. This may be beneficial for other migration scripts in this repo that require a fromFile argument.
 
 Parameter      | Note
@@ -427,31 +460,31 @@ synthetics     | Pass this flag to list Synthetic monitor entities
 workload       | Pass this flag to list Workloads
 
 
-####  12) python3 deletemonitors.py
+####  14) python3 deletemonitors.py
 
-`usage: deletemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --timeStamp TIMESTAMP`
+```
+usage: deletemonitors.py [-h] --fromFile FROMFILE [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION] --timeStamp TIMESTAMP
+```
 
 Will delete monitors listed one per line in --fromFile and stored in db/targetaccount/monitors/timeStamp. The fetchentities.py script can help generate this file.
 
-####  13) (optional Testing purpose only) python3 deleteallmonitors.py
+####  15) (optional Testing purpose only) python3 deleteallmonitors.py
 
 #### Warning: All monitors in target account will be deleted
 
-`usage: deleteallmonitors.py [-h] [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION]`
+```
+usage: deleteallmonitors.py [-h] [--targetApiKey TARGETAPIKEY] --targetAccount TARGETACCOUNT [--targetRegion TARGETREGION]
+```
 
 deleteallmonitors fetches all the monitors. Backs them up in db/accountId/monitors/timeStamp-bakup And deletes all the monitors
 
 ##### Note: In case this script is used in error use migratemonitors to restore the backed up monitors
 
-####  14) (optional) python3 store_policies.py
+####  16) (optional) python3 store_violations.py
 
-usage: store_policies.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY
-
-Saves all alert polices in db/<sourceAccount>/alert_policies/alert_policies.json
-
-####  15) (optional) python3 store_violations.py
-
+```
 usage: store_violations.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY --startDate STARTDATE --endDate ENDDATE [--onlyOpen]
+```
 
  --sourceAccount SOURCEACCOUNT Source accountId
 
@@ -469,10 +502,10 @@ usage: store_violations.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SO
 Saves all alert violations in db/<sourceAccount>/alert_violations/alert_violations.json
 and db/<sourceAccount>/alert_violations/alert_violations.csv    
 
-####  16) (optional) python3 store_policy_entity_map.py
-
+####  17) (optional) python3 store_policy_entity_map.py
+```
 usage: store_policy_entity_map.py [-h] --sourceAccount SOURCEACCOUNT [--sourceRegion SOURCEREGION]  --sourceApiKey SOURCEAPIKEY --useLocal
-
+```
 Builds a mapping from APM, Browser, and Mobile applications and APM key
 transactions to and from alert policies for any policies which contain
 "app conditions" as identified by the
@@ -481,36 +514,32 @@ transactions to and from alert policies for any policies which contain
 Saves the mapping in db/<sourceAccount>/alert_policies/alert_policy_entity_map.json
 
 
-####  17) python3 nrmig
- Configure appropriate [config.ini](config.ini.example)  and run nrmig command 
+####  18) python3 nrmig
+Configure appropriate [config.ini](config.ini.example) and run nrmig command.
 
- python3 nrmig -c ./config.ini migrate policies
+`python3 nrmig -c ./config.ini migrate policies`
 
- python3 nrmig -c ./config.ini migrate conditions
+`python3 nrmig -c ./config.ini migrate conditions`
 
 
-####  18) python3 fetchalldatatypes
+####  19) python3 fetchalldatatypes
 
 --hostsFile should contain hostNames(entityNames) one per line. 
 
 hostsFile can also be generated by using fetchentities script.
-
-usage: fetchalldatatypes.py  --hostsFile HOSTS_FILE --sourceAccount SOURCE_ACCOUNT_ID --sourceApiKey SOURCE_API_KEY
-
-                            --insightsQueryKey INSIGHTS_QUERY_KEY [--region NR_REGION]
-
+```
+usage: fetchalldatatypes.py --hostsFile HOSTS_FILE --sourceAccount SOURCE_ACCOUNT_ID --sourceApiKey SOURCE_API_KEY --insightsQueryKey INSIGHTS_QUERY_KEY [--region NR_REGION]
+```
 output : output/<entityName>.csv file for each entityName with names of metrics and events 
 
 received from that entity
 
-####  19) python3 wlgoldensignals.py
+####  20) python3 wlgoldensignals.py
 Automated script for overriding and resetting golden signals for workloads. 
 ####Note: By default workloads only display 4 golden signals.
-
-usage: wlgoldensignals.py --targetAccount TARGETACCOUNT --targetApiKey  TARGETAPIKEY [--targetRegion TARGETREGION]
-                          [--tagName TAGNAME] [--tagValue TAGVALUE] [--goldenSignalsJson GOLDENSIGNALSJSON]
-                          [--resetGoldenSignals] [--domain DOMAIN] [--type TYPE]
-
+```
+usage: wlgoldensignals.py --targetAccount TARGETACCOUNT --targetApiKey  TARGETAPIKEY [--targetRegion TARGETREGION] [--tagName TAGNAME] [--tagValue TAGVALUE] [--goldenSignalsJson GOLDENSIGNALSJSON] [--resetGoldenSignals] [--domain DOMAIN] [--type TYPE]
+```
 Parameter      | Note
 -------------- | --------------------------------------------------
 targetAccount  | Account containing the workloads
@@ -534,10 +563,6 @@ The above will find workloads having tag Environment=WindowsProduction and then 
 reset the golden signals for domain INFRA and type HOST
 
 
-
-
-
- 
 ### Logging
 
 Logs are stored in logs/migrate.log Logging level can be set in migrationlogger.py. Default level for file and stdout is INFO

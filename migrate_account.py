@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 
@@ -21,7 +22,6 @@ import migratemonitors as mm
 import migrate_notifications as mn
 import migratepolicies as mp
 import migratetags as mt
-import migrate_workflows as mw
 import store_policies as store_policies
 
 SRC_ACCT = '1234567'
@@ -105,7 +105,7 @@ def migrate_step2():
     # Migrate notification channels
     channels_by_source_id = mn.migrate_channels(SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION, destinations_by_source_id)
     # Migrate workflows 
-    workflows_by_source_id = mw.migrate_workflows(SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION, channels_by_source_id, policies_by_source_id)
+    workflows_by_source_id = mn.migrate_workflows(SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION, channels_by_source_id, policies_by_source_id)
     # Migrate APM app_apdex_threshold, end_user_apdex_threshold, and enable_real_user_monitoring settings
     mapm.migrate_apps(APP_FILE, SRC_ACCT, SRC_API_KEY, SRC_REGION, TGT_ACCT, TGT_API_KEY, TGT_REGION)
     # Migrate dashboards
@@ -114,11 +114,21 @@ def migrate_step2():
     mt.migrate_tags(APP_FILE, SRC_ACCT, SRC_REGION, SRC_API_KEY, TGT_ACCT, TGT_REGION, TGT_API_KEY, [ec.APM_APP])
 
 
-if __name__ == '__main__':
-    # cleanup()
-    fetch()
-    migrate_step1()
-    # Redirect apps, then
-    # migrate_step2()
+def main(run_step2_only, run_cleanup):
+    if run_cleanup:
+        cleanup()
+    if run_step2_only:
+        migrate_step2()
+    else:
+        fetch()
+        migrate_step1()
     logger.info('Completed migration')
 
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Migration script')
+    parser.add_argument('--step2', action='store_true', help='Run only migrate_step2')
+    parser.add_argument('--cleanup', action='store_true', help='Run cleanup before other steps')
+    args = parser.parse_args()
+
+    main(args.step2, args.cleanup)

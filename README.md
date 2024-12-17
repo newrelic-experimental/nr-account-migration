@@ -119,13 +119,59 @@ APM Configuration
 
 ## Usage
 
+There are two approaches to migrating. The first uses a single script [migrate_account.py](migrate_account.py) to orchestrate the migration of configuration for a whole (single) account. The second approach requires individual scripts to be called in a specific order; this is more flexible, but is also more time consuming. 
+
+For the second approach, using standalone scripts, please see the [Individual Scripts](https://github.com/newrelic-experimental/nr-account-migration#individual-scripts) section below.
+
+### Single orchestration script: migrate_account.py
+The migrate_account.py script is used to migrate various components (such as monitors, alert policies, conditions, notifications, and tags) from a source New Relic account to a target New Relic account. The script can be run in different modes to perform specific steps of the migration process.
+
+#### Command-Line Arguments
+The script accepts the following command-line arguments to control its behavior:
+
+`--cleanup`: Run the cleanup function before other steps.
+
+`--step2`: Run only the migrate_step2 function.
+
+**Warning:** cleanup removes almost all configuration from the target account, so use with caution.
+
+#### Usage
+To run the script with the default behavior (fetch and migrate_step1):
+
+`python migrate_account.py`
+
+To run the script with cleanup, fetch, and migrate_step1:
+
+`python migrate_account.py --cleanup`
+
+To run the script with only migrate_step2:
+
+`python migrate_account.py --step2`
+
+It is intended that fetch and migrate_step1 are run first. They migrate synthetic monitors.
+
+Before running step2 the agents sending data to the New Relic source account must be reconfigured to send their data to the target account. Some of the migration steps require that entities are already reporting to the 
+
+Step2 migrates alert policies, alert conditions, alert notification, dashboards, APM app_apdex_threshold, end_user_apdex_threshold, and enable_real_user_monitoring settings. It also migrates dashboards and APM entity tags.
+
+#### Configuration
+The script uses several configuration variables to specify the source and target accounts, API keys, regions, and other settings. These variables are defined in the script itself and can be modified as needed:
+```
+SRC_ACCT = '1234567'
+SRC_API_KEY = 'NRAK-1234...'
+SRC_REGION = 'us'
+SRC_INSIGHTS_KEY = 'NRIQ-2345...'
+TGT_ACCT = '9876543'
+TGT_API_KEY = 'NRAK-9876...'
+TGT_REGION = 'eu'
+```
+
+### Individual scripts
+
 ####  1) python3 fetchmonitors.py 
 
 ```
-usage: fetchmonitors.py --sourceAccount SOURCEACCOUNT --region [ us (default) |eu ]
-                        --sourceApiKey SOURCEAPIKEY  
-                        --insightsQueryKey INSIGHTSQUERYKEY
-                        --toFile TOFILE
+usage: fetchmonitors.py --sourceAccount SOURCEACCOUNT --region [ us (default) |eu ] --sourceApiKey SOURCEAPIKEY --insightsQueryKey INSIGHTSQUERYKEY --toFile TOFILE
 ```
 
 Parameter        | Note

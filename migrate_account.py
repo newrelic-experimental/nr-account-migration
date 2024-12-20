@@ -41,7 +41,7 @@ MATCH_SOURCE_CONDITION_STATE = True  # Match alert condition enabled/disabled st
 DASHBOARDS_LIST_FILE = 'output/{}_dashboards.csv'.format(SRC_ACCT)
 APP_FILE = 'output/{}_apm.csv'.format(SRC_ACCT)
 src_mon_time_stamp = ''  # will be updated by fetch step
-ACCOUNT_MAPPING_FILE = 'account_mapping.json'
+ACCOUNT_MAPPING_FILE = None  # Map account ids to alternatives using a dictionary in a [JSON file](account_mapping.json). Useful when moving between regions, e.g. from the us to eu region.
 COND_TYPES = mc.ALL_CONDITIONS
 
 logger = m_logger.get_logger(os.path.basename(__file__))

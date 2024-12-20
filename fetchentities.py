@@ -77,7 +77,7 @@ def fetch_entities(src_account_id, src_api_key, entity_types, output_file, *,
     for entity_type in entity_types:
         entities = ec.gql_get_entities_by_type(src_api_key, entity_type, src_account_id, tag_name, tag_value, src_region)
         for entity in entities['entities']:
-            entity_names.append(store.sanitize(entity['name']))
+            entity_names.append(entity['name'])
     entity_names_file = store.create_output_file(output_file)
     with entity_names_file.open('a') as entity_names_out:
         for entity_name in entity_names:

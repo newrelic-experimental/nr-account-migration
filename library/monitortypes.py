@@ -51,8 +51,9 @@ def is_step_monitor(monitor):
 def prep_ping(monitor):
     # Using list comprehension get the tag values with corresponding keys e.g. 'apdexTarget'
     apdex_target = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'apdexTarget'][0][0]
-    custom_headers = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'customHeader'][0][0]
+    custom_headers = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'customHeader']
     if custom_headers:
+        custom_headers = custom_headers[0][0]
         custom_headers = { 'name': custom_headers.split(':')[0], 'value': custom_headers.split(':')[1] }
     private_locations = next((tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'privateLocation'), [])
     if private_locations:
@@ -66,7 +67,8 @@ def prep_ping(monitor):
     # map the period values using the period map
     period = SYNTHETIC_PERIOD_MAP[period]
     redirect_is_failure = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'redirectIsFailure'][0][0]
-    response_validation_text = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'responseValidationText'][0][0]
+    response_validation_text = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'responseValidationText']
+    response_validation_text = response_validation_text[0][0] if response_validation_text else None
     should_bypass_head_request = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'shouldBypassHeadRequest'][0][0]
     useTlsValidation = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'useTlsValidation'][0][0]
     # Create a dictionary with the monitor data
@@ -95,8 +97,9 @@ def prep_simple_browser(monitor):
     # Using list comprehension get the tag values with corresponding keys e.g. 'apdexTarget'
     apdex_target = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'apdexTarget'][0][0]
     browsers = next((tag['values'][0] for tag in monitor['definition']['tags'] if tag['key'] == 'browsers'), None)
-    custom_headers = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'customHeader'][0][0]
+    custom_headers = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'customHeader']
     if custom_headers:
+        custom_headers = custom_headers[0][0]
         custom_headers = { 'name': custom_headers.split(':')[0], 'value': custom_headers.split(':')[1] }
     devices = next((tag['values'][0] for tag in monitor['definition']['tags'] if tag['key'] == 'devices'), None)
     enableScreenshotOnFailureAndScript = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'enableScreenshotOnFailureAndScript'][0][0]
@@ -111,7 +114,8 @@ def prep_simple_browser(monitor):
     period = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'period'][0][0]
     # map the period values using the period map
     period = SYNTHETIC_PERIOD_MAP[period]
-    response_validation_text = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'responseValidationText'][0][0]
+    response_validation_text = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'responseValidationText']
+    response_validation_text = response_validation_text[0][0] if response_validation_text else None
     runtime_type = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeType'][0][0]
     runtime_type_version = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeTypeVersion'][0][0]
     script_language = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'scriptLanguage'][0][0]

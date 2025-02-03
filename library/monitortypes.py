@@ -66,11 +66,14 @@ def prep_ping(monitor):
     period = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'period'][0][0]
     # map the period values using the period map
     period = SYNTHETIC_PERIOD_MAP[period]
-    redirect_is_failure = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'redirectIsFailure'][0][0]
+    redirect_is_failure = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'redirectIsFailure']
+    redirect_is_failure = redirect_is_failure[0][0] if redirect_is_failure else None
     response_validation_text = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'responseValidationText']
     response_validation_text = response_validation_text[0][0] if response_validation_text else None
-    should_bypass_head_request = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'shouldBypassHeadRequest'][0][0]
-    useTlsValidation = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'useTlsValidation'][0][0]
+    should_bypass_head_request = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'shouldBypassHeadRequest']
+    should_bypass_head_request = should_bypass_head_request[0][0] if should_bypass_head_request else None
+    useTlsValidation = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'useTlsValidation']
+    useTlsValidation = useTlsValidation[0][0] if useTlsValidation else None
     # Create a dictionary with the monitor data
     monitor_data = {
         'apdexTarget': float(apdex_target),
@@ -119,7 +122,8 @@ def prep_simple_browser(monitor):
     runtime_type = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeType'][0][0]
     runtime_type_version = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'runtimeTypeVersion'][0][0]
     script_language = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'scriptLanguage'][0][0]
-    useTlsValidation = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'useTlsValidation'][0][0]
+    useTlsValidation = [tag['values'] for tag in monitor['definition']['tags'] if tag['key'] == 'useTlsValidation']
+    useTlsValidation = useTlsValidation[0][0] if useTlsValidation else None
     # Create a dictionary with the monitor data
     monitor_data = {
         'advancedOptions':

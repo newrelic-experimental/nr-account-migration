@@ -211,7 +211,7 @@ def load_monitors(account_id, timestamp, monitor_names):
 
 
 def load_monitor(monitors_dir, monitor_name):
-    adjusted_name = monitor_name
+    adjusted_name = sanitize(monitor_name)
     if os.name == win_names.WINDOWS:
         adjusted_name = win_names.get_adjusted_name(monitors_dir, monitor_name)
     monitor_dir = monitors_dir / adjusted_name
@@ -279,8 +279,8 @@ def create_output_file(file_name):
 
 
 def sanitize(name):
-    # illegal_characters = ['/', '?', '<', '>', '\\', ':', '*', '|']
-    illegal_characters = ['/', '?', '<', '>', '\\', '*', '|']
+    illegal_characters = ['/', '?', '<', '>', '\\', ':', '*', '|']
+    # illegal_characters = ['/', '?', '<', '>', '\\', '*', '|']
     characters = list(name)
     for index, character in enumerate(characters):
         if characters[index] in illegal_characters:
